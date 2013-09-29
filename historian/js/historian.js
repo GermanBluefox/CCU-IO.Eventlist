@@ -241,7 +241,7 @@
             $("#histTable" + historian.count).jqGrid({
                 datatype:    "local",
                 data:        historian.logData[historian.active].data,
-                height:      historian.jHtml.height() - 90,
+                height:      historian.jHtml.height() - 55,
                 autowidth:   true,
                 //shrinkToFit: true,
                 scrollOffset :50,
@@ -325,7 +325,7 @@
             $('#loader_small').hide ();
             $(window).resize (function () {
                 $("#histTable" + historian.count).setGridWidth  (historian.jHtml.width());
-                $("#histTable" + historian.count).setGridHeight (historian.jHtml.height() - 90);
+                $("#histTable" + historian.count).setGridHeight (historian.jHtml.height() - 55);
             });
             
         },

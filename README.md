@@ -5,8 +5,12 @@ Ereignistabelle für CCU.IO Log
 CCU.IO-Historian zeigt tabelarisch alle Zustandswechsel von Homematic-Geräten.
 Natürlich ist CCU.IO erforderlich.
 
+Bedienung: 
+- http://ip-address:8080/historian/index.html aufrufen.
+- Die Werte in Zeilen "Raum", "Bild" und "Typ" sind clickbar und man kann damit filtern. Zeiwetes Drucken löscht den Filter.
+
 ##Installation
-Einfach in das Verzeichnis www von ccu.io kopieren und dann http://ip-address:8080/historian/index.html aufrufen.
+Einfach in das Verzeichnis www von ccu.io kopieren.
 
 ##Verwendete Software
 * jQuery http://jquery.com/
