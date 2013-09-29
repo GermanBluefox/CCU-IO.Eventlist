@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html" xmlns="http://www.w3.org/1999/html">
+<head>
+    <title>CCU.IO-Historian</title>
+    <link rel="stylesheet" href="css/historian.css" type="text/css" />
+    <link rel="stylesheet" href="css/ui.jqgrid.css" type="text/css" media="screen" />
+    <link rel="stylesheet" href="css/overcast/jquery-ui.css" id="jqui_theme"/>
+    <link rel="stylesheet" href="css/overcast/jquery.ui.theme.css" id="jqui_theme"/>
+    
+    <script src="/lib/js/jquery-1.10.2.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/historian.js"></script>
+    <script type="text/javascript" src="js/jquery.jqGrid.min.js"></script>
+    <script type="text/javascript" src="js/grid.locale-de.js" ></script>
+    <script type="text/javascript">
+        jQuery(document).ready(function () { 
+            historian.init('myTable');
+        });
+    </script>
+</head>
+<body>
+
+<div id="myTable" style='width: 700px; height: 100%'></div>
+</body>
+</html>
