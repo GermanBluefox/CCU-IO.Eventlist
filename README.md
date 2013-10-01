@@ -1,16 +1,27 @@
-CCU-IO.Historian
+CCU-IO.Eventlist
 ================
 
-Ereignistabelle für CCU.IO Log
-CCU.IO-Historian zeigt tabelarisch alle Zustandswechsel von Homematic-Geräten.
+Ereignistabelle für CCU.IO Log.
+
+CCU.IO-Eventlist zeigt tabelarisch alle Zustandswechsel von Homematic-Geräten.
+
 Natürlich ist CCU.IO erforderlich.
 
 Bedienung: 
-- http://ip-address:8080/historian/index.html aufrufen.
-- Die Werte in Zeilen "Raum", "Bild" und "Typ" sind clickbar und man kann damit filtern. Zeiwetes Drucken löscht den Filter.
+- http://ip-address:8080/eventlist/index.html aufrufen.
+- Die Werte in Zeilen "Raum", "Bild" und "Typ" sind clickbar und man kann damit filtern. Zeiwetes Drucken löscht den Filter.<br>
 
 ##Installation
 Einfach in das Verzeichnis www von ccu.io kopieren.
+
+##Parameters:
+ - loading  - Show loading process
+ - advanced - Show events as text, like "Lamp in the kitchen is on"
+ - lang     - Language
+ - hmID     - Show only events for eventlist Homematic ID
+ - states   - Show only state changes. Do not show temperature, humidity, all cyclic values
+ - types    - Show "a"ll, Show only "v"ariables, show Only "d"evices
+ - width    - Width of window
 
 ##Verwendete Software
 * jQuery http://jquery.com/
