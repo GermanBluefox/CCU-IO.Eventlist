@@ -33,7 +33,7 @@ var eventlist;
             hmID:        null,
             onlyStates:  true,   // Filter out humidity, temperature and so on
             showTypes:   0,      // 0 - all, 1 - devices, 2 - variables
-            width:       null,   // Width of table
+            width:       0,      // Width of table: 0 is 100%
         
         },
         version:     "0.0.1",
@@ -96,7 +96,7 @@ var eventlist;
             $("#histTable" + eventlist.count).jqGrid({
                 datatype:    "local",
                 data:        eventlist.logData[eventlist.active].data,
-                height:      eventlist.jHtml.height() - 90,
+                height:      eventlist.jHtml.height() - 80,
                 autowidth:   true,
                 shrinkToFit: true,
                 scrollOffset :50,
@@ -193,7 +193,7 @@ var eventlist;
             $('#loader_small').hide ();
             $(window).resize (function () {
                 $("#histTable" + eventlist.count).setGridWidth  (eventlist.jHtml.width());
-                $("#histTable" + eventlist.count).setGridHeight (eventlist.jHtml.height() - 90);
+                $("#histTable" + eventlist.count).setGridHeight (eventlist.jHtml.height() - 80);
             });
             
         },
@@ -718,6 +718,9 @@ var eventlist;
                     "Description":{ "de": "Beschreibung"},
                     "Value"     : {"de": "Wert"},
                     "Room"      : {"de": "Zimmer"},
+                    "All"       : {"de": "Alle"},
+                    "Only devices": {"de": "Nur Ger&auml;te"},
+                    "Only variables": {"de": "Nur Variablen"},
                 };
             }
             if (eventlist.words[text]) {
@@ -762,7 +765,7 @@ var eventlist;
             
             eventlist.jHtml = $("#"+elemName);
             
-            if (eventlist.settings.width != null) {
+            if (eventlist.settings.width !== null && eventlist.settings.width !== 0) {
                 eventlist.jHtml.width(eventlist.settings.width);
             }
             
