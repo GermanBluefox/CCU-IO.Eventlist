@@ -27,6 +27,10 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 * jQuery http://jquery.com/
 * jqGrid http://www.trirand.com/blog/
 
+##Changelog
+*V 0.0.2
+- Einstellbare Anzahl von Ereignissen auf der Seite
+
 
 ## License
 Copyright (c) 2013 Denis Khaev deniskhaev@gmail.com

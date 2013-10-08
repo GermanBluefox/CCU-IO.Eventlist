@@ -3,7 +3,7 @@
  *
  *      shows CCU.IO Logs as a Table
  *
- *      Copyright (c) 2013 Blueofx https://github.com/GermanBluefox
+ *      Copyright (c) 2013 Bluefox https://github.com/GermanBluefox
  *
  *      Lizenz: CC BY-NC 3.0 http://creativecommons.org/licenses/by-nc/3.0/de/
  *
@@ -19,6 +19,7 @@
  *      - states   - Show only state changes. Do not show temperature, humidity, all cyclic values
  *      - types    - Show "a"ll, Show only "v"ariables, show Only "d"evices
  *      - width    - Width of window
+ *      - pcount   - Number of items on one page at start. Can be: 25,50,100,250,500,750,1000
  */
 
 var eventlist;
@@ -34,12 +35,13 @@ var eventlist;
             onlyStates:  true,   // Filter out humidity, temperature and so on
             showTypes:   0,      // 0 - all, 1 - devices, 2 - variables
             width:       0,      // Width of table: 0 is 100%
-        
+            itemsOnPage: 250     // Number of events in one page
         },
-        version:     "0.0.1",
+        version:     "0.0.2",
         socket:      null,
         regaObjects: null,
         regaIndex:   null,
+        stringTable: null,
         logData:     [],
         jHtml:       null,   // jquery container object 
         count:       0,
@@ -49,6 +51,7 @@ var eventlist;
         state:       [],
         queryParams: null,
         today:       null,
+        
 
         show: function () {
             if (document.getElementById("#histTable" + eventlist.count) == null) {
@@ -75,7 +78,7 @@ var eventlist;
                     {name:'Room',     index:'Room',      width:100, sortable:false,  align:"right",  stype: 'select'},
                     {name:'Image',    index:'Image',     width:22,  sortable:false,  align:"center", search: false},
                     {name:'Action',   index:'Action',    width:400, sortable:false, search: false},
-                    {name:'Type',     index:'Type',      width:100, sortable:false},
+                    {name:'Type',     index:'Type',      width:100, sortable:false}
                 ];
             }
             else {
@@ -87,7 +90,7 @@ var eventlist;
                     {name:'Image',    index:'Image',     width:22,  sortable:false,  align:"center", search: false},
                     {name:'Name',     index:'Name',      width:250, sorttype: 'text'},
                     {name:'Type',     index:'Type',      width:100, sortable:false},
-                    {name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false},
+                    {name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false}
                 ];
             }
 
@@ -100,7 +103,7 @@ var eventlist;
                 autowidth:   true,
                 shrinkToFit: true,
                 scrollOffset :50,
-                rowNum       :750,
+                rowNum       :eventlist.settings.itemsOnPage,
                 pgbuttons: true,
                 colNames:colNames,
                 colModel:colModel,
@@ -110,16 +113,16 @@ var eventlist;
                 search : true,
                 pager: '#histPager' + eventlist.count,
                 viewrecords: true,
-                rowList:[100,500,750,1000],
+                rowList:[25,50,100,250,500,750,1000],
                 gridComplete: function(){
                     var grid = $("#histTable" + eventlist.count);
                     var data = grid.jqGrid("getGridParam", "postData");
-                    var ids = $("#histTable" + eventlist.count).jqGrid('getDataIDs');
+                    //var ids  = grid.jqGrid('getDataIDs');
 
                     if ((data.searchField == "Type"))
                         $('#jqgh_histTable' + eventlist.count + "_Type").html(data.searchString);
                     else
-                         $('#jqgh_histTable' + eventlist.count + "_Type").html(eventlist.translate ('Type'))
+                         $('#jqgh_histTable' + eventlist.count + "_Type").html(eventlist.translate ('Type'));
                          
                     if ((data.searchField == "Room"))
                         $('#jqgh_histTable' + eventlist.count + "_Room").html(data.searchString);
@@ -138,19 +141,19 @@ var eventlist;
                         else
                              $('#jqgh_histTable' + eventlist.count + "_Name").html(eventlist.translate ('Name'));
                     }
-                },
+                }
             }).jqGrid('filterToolbar',{stringResult: true, searchOnEnter : false, defaultSearch: 'cn'});
             
             // Add date selector
             var select = '<table style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;"><tr style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;"><td style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;">\n';
-            select += '<input type="text" id="histDate' + eventlist.count + '" />'
+            select += '<input type="text" id="histDate' + eventlist.count + '" />';
             select += "</td>\n";
             select += '<td><select id="histType' + eventlist.count + '" onchange="eventlist.filterType()">\n';
             select += '<option value="a">'+eventlist.translate('All')+'</option>';
             select += '<option value="d">'+eventlist.translate('Only devices')+'</option>';
             select += '<option value="v">'+eventlist.translate('Only variables')+'</option>';
             select += '</select></td>';
-            select += "<td style='border: 0px; border-spacing:0; padding: 0px; margin: 0px;'>\n"
+            select += "<td style='border: 0px; border-spacing:0; padding: 0px; margin: 0px;'>\n";
             select += '<div id="loader_small" style="vertical-align: left; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">\n';
             select += '    <span class="ajax-loader-small"></span>\n';
             select += '</div></td></tr>\n';
@@ -162,25 +165,30 @@ var eventlist;
 
             
             var d = new Date();
-            $('#histDate'+ eventlist.count).datepicker ().datepicker( "option", "dateFormat", 'dd.mm.yy').datepicker( "option", "maxDate", new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+            var histDate = $('#histDate'+ eventlist.count);
+            histDate.datepicker ().datepicker( "option", "dateFormat", 'dd.mm.yy').datepicker( "option", "maxDate", new Date(d.getFullYear(), d.getMonth(), d.getDate()));
             var dd = eventlist.logData[eventlist.logData.length-1].date;
             dd = dd.split('.');
             if (eventlist.today == null) {
                 eventlist.today = $.datepicker.formatDate('dd.mm.yy', new Date());
             }
 
-            $('#histDate'+ eventlist.count).datepicker( "option", "minDate", new Date(parseInt(dd[2]), parseInt(dd[1]) - 1, parseInt(dd[0])));
-            
-            $('#histDate'+ eventlist.count).val(eventlist.logData[eventlist.active].date);    
+            histDate.datepicker( "option", "minDate", new Date(parseInt(dd[2]), parseInt(dd[1]) - 1, parseInt(dd[0])));
+
+            histDate.val(eventlist.logData[eventlist.active].date);
             
             //document.getElementById ('histDate'+ eventlist.count).options[eventlist.active].selected = true;
+
+            histDate.change (function () {
+                var grid = $("#histTable" + eventlist.count);
+                eventlist.settings.itemsOnPage = parseInt (grid.getGridParam('rowNum'));
             
-            $('#histDate'+ eventlist.count).change (function () {
                 var date = $('#histDate'+ eventlist.count).val();
                 if (date == eventlist.today)
                     date = eventlist.translate ("Today");
+                    
                 for (var i = 0; i < eventlist.logData.length; i++) {
-                    if ( eventlist.logData[i].date == date) {
+                    if (eventlist.logData[i].date == date) {
                         eventlist.active = i;
                         $('#loader_small').show ();
                         //$(window).resize (null);
@@ -192,8 +200,9 @@ var eventlist;
             });
             $('#loader_small').hide ();
             $(window).resize (function () {
-                $("#histTable" + eventlist.count).setGridWidth  (eventlist.jHtml.width());
-                $("#histTable" + eventlist.count).setGridHeight (eventlist.jHtml.height() - 80);
+                $("#histTable" + eventlist.count).
+                    setGridWidth  (eventlist.jHtml.width()).
+                    setGridHeight (eventlist.jHtml.height() - 80);
             });
             
         },
@@ -328,13 +337,14 @@ var eventlist;
                 var rooms = eventlist.regaIndex["ENUM_ROOMS"];
                 
                 obj.unit = eventlist.regaObjects[id]["ValueUnit"];
-                if (obj.unit == "100%" || obj.unit == undefined)
+                if (obj.unit == "100%" || obj.unit === undefined)
                     obj.unit = "";
 
                 for (var room in rooms) {
-                    for (var k = 0; k < eventlist.regaObjects[rooms[room]]["Channels"].length; k++){
-                        if (eventlist.regaObjects[rooms[room]]["Channels"][k] == p){
-                            obj.room = eventlist.regaObjects[rooms[room]]["Name"];
+                    var roomObj = eventlist.regaObjects[rooms[room]];
+                    for (var k = 0; k < roomObj["Channels"].length; k++){
+                        if (roomObj["Channels"][k] == p){
+                            obj.room = roomObj["Name"];
                             break;
                         }
                     } 
@@ -397,20 +407,19 @@ var eventlist;
                 return true;
             else if (eventlist.settings.showTypes == 1 && type == "Variable")
                 return true;
-            else if (eventlist.settings.showTypes == 2 && type != "Variable")
-                return true;
             else
-                return false;
+                return (eventlist.settings.showTypes == 2 && type != "Variable");
             
             
         },
         filterBy: function(value, filterBy) {     
             var grid = $("#histTable" + eventlist.count);
-            if ($("#gs_"+filterBy).val() != "") {
-                $("#gs_"+filterBy).val("").trigger("change");
+            var filter = $("#gs_"+filterBy);
+            if (filter.val() != "") {
+                filter.val("").trigger("change");
             }
             else {
-                $("#gs_"+filterBy).val(value).trigger("change");
+                filter.val(value).trigger("change");
             }
             grid[0].triggerToolbar(); 
             //grid.filterToolbar({stringResult: true,searchOnEnter : false, defaultSearch: 'cn'});
@@ -496,7 +505,6 @@ var eventlist;
                 return null;
         
             var triple = event.split(" ", 3);
-            var k   = triple.length;
             var val = triple[2];
             if (triple[0].length == 0)
                 return null;
@@ -535,7 +543,7 @@ var eventlist;
                     if (eventlist._clickFilter === undefined) eventlist._clickFilter = eventlist.translate ('Click to filter...');
                     
                     if (eventlist.settings.advanced) {
-                        action = eventlist.getActionAndState (eventlist.state[triple[1]].name.name, eventlist.state[triple[1]].name.parentType, eventlist.state[triple[1]].name.type, val);
+                        var action = eventlist.getActionAndState (triple[1], eventlist.state[triple[1]].name.name, eventlist.state[triple[1]].name.parentType, eventlist.state[triple[1]].name.type, val);
                         return{
                                 "id":     id,
                                 "Time":   eventlist.tick2date (triple[0], 2),
@@ -544,7 +552,7 @@ var eventlist;
                                 "Name":   eventlist.state[triple[1]].name.name,
                                 "Action": (action._class != '') ? "<div class='"+action._class+"' >" + action.text  + "</div>" : action.text,
                                 "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
-                                "Value":  (action._class != '') ? "<div class='"+action._class+"' >" + action.value + "</div>" : action.value,
+                                "Value":  (action._class != '') ? "<div class='"+action._class+"' >" + action.value + "</div>" : action.value
                             };
                     }
                     else {
@@ -555,7 +563,7 @@ var eventlist;
                                 "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
                                 "Name":   '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')">'+eventlist.state[triple[1]].name.name+'</div>',
                                 "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
-                                "Value":  val,
+                                "Value":  val
                             };
                     }
                 }
@@ -571,23 +579,33 @@ var eventlist;
 
             $("#loader_output2").prepend("<span class='ajax-loader'></span> lade "+eventlist.logData[indexToLoad].file+" ");
             
-            eventlist.socket.emit('readRawFile', 'log/'+eventlist.logData[indexToLoad].file, function (data) {
-                eventlist.ajaxDone();
-                $("#loader_output2").prepend("<span class='ajax-loader'></span> verarbeite "+eventlist.logData[indexToLoad].file+" ");
-                var dataArr = data.split("\n");
-                var l   = dataArr.length;
-                
-                var cnt = 0;
-                eventlist.state = [];
-                for (var i = l - 1; i >= 0; i--) {
-                    var obj = eventlist.getEvent (dataArr[i], cnt + 1);
-                    if (obj != null) {
-                        eventlist.logData[eventlist.active].data[cnt++] = obj;
-                    }
-                }    
-                eventlist.logData[indexToLoad].loaded = true;
-                eventlist.ajaxDone();
-                eventlist.show();
+            var log = eventlist.logData[indexToLoad].file;
+            
+            if (log.match(/log$/)) {
+                log = log + "?" + (new Date().getTime());
+            }
+
+            $.ajax({
+                type: "GET",
+                url: '/log/'+log,
+                success: function (data) {
+                    eventlist.ajaxDone();
+                    $("#loader_output2").prepend("<span class='ajax-loader'></span> verarbeite "+eventlist.logData[indexToLoad].file+" ");
+                    var dataArr = data.split("\n");
+                    var l   = dataArr.length;
+                    
+                    var cnt = 0;
+                    eventlist.state = [];
+                    for (var i = l - 1; i >= 0; i--) {
+                        var obj = eventlist.getEvent (dataArr[i], cnt + 1);
+                        if (obj != null) {
+                            eventlist.logData[eventlist.active].data[cnt++] = obj;
+                        }
+                    }    
+                    eventlist.logData[indexToLoad].loaded = true;
+                    eventlist.ajaxDone();
+                    eventlist.show();
+                }
             });
         },
         ajaxDone: function () {
@@ -618,11 +636,26 @@ var eventlist;
                 eventlist.loadLog (eventlist.active);
             });
         },       
-        getActionAndState: function (name, deviceType, pointType, value) {
+        getActionAndState: function (hmid, name, deviceType, pointType, value) {
             var action = {text: name + " / "+ pointType + " = " + value, _class: '', value: value};
-            
+
+            if (eventlist.regaObjects[hmid] !== undefined) {
+                var parent  = eventlist.regaObjects[hmid].Parent;
+                var devType = eventlist.stringTable[eventlist.regaObjects[parent]["ChnLabel"]];
+                if (devType !== undefined) {
+                    var varType = devType[pointType];
+                    if (varType !== undefined) {
+
+                    }
+                }
+            }
+            else  {
+                var debug = 1;
+            }
+
+
             if (pointType == 'LEVEL') {
-                var isFull = (value == "100,0%")
+                var isFull = (value == "100,0%");
                 action._class = isFull ? 'h-active-full' : '';
                 if (isFull) 
                     action.text = name + " ist voll AUF";
@@ -720,7 +753,7 @@ var eventlist;
                     "Room"      : {"de": "Zimmer"},
                     "All"       : {"de": "Alle"},
                     "Only devices": {"de": "Nur Ger&auml;te"},
-                    "Only variables": {"de": "Nur Variablen"},
+                    "Only variables": {"de": "Nur Variablen"}
                 };
             }
             if (eventlist.words[text]) {
@@ -733,27 +766,30 @@ var eventlist;
 
             return text;
         },
-        init: function (elemName, options, regaObjects, regaIndex) {
+        init: function (elemName, options, regaObjects, regaIndex, strtable) {
             eventlist.queryParams = eventlist.getUrlVars();
             eventlist.settings = $.extend (eventlist.settings, options);
             
             if (eventlist.queryParams['loading'] !== undefined) {
-                eventlist.settings.loading = (eventlist.queryParams['loading'] == "true") ? true : false;
+                eventlist.settings.loading = (eventlist.queryParams['loading'] == "true");
             }
             if (eventlist.queryParams['advanced'] !== undefined) {
-                eventlist.settings.advanced = (eventlist.queryParams['advanced'] == "true") ? true : false;
+                eventlist.settings.advanced = (eventlist.queryParams['advanced'] == "true");
             }            
             if (eventlist.queryParams['hmid'] !== undefined) {
-                eventlist.settings.hmID = (eventlist.queryParams['hmid'] == "true") ? true : false;
+                eventlist.settings.hmID = (eventlist.queryParams['hmid'] == "true");
             }          
             if (eventlist.queryParams['lang'] !== undefined) {
-                eventlist.settings.lang = (eventlist.queryParams['lang'] == "true") ? true : false;
+                eventlist.settings.lang = (eventlist.queryParams['lang'] == "true");
             }   
             if (eventlist.queryParams['states'] !== undefined) {
-                eventlist.settings.onlyStates = (eventlist.queryParams['states'] == "true") ? true : false;
+                eventlist.settings.onlyStates = (eventlist.queryParams['states'] == "true");
             }   
             if (eventlist.queryParams['width'] !== undefined) {
                 eventlist.settings.width = parseInt(eventlist.queryParams['width']);
+            }   
+            if (eventlist.queryParams['pcount'] !== undefined) {
+                eventlist.settings.itemsOnPage = parseInt(eventlist.queryParams['pcount']);
             }   
             if (eventlist.queryParams['types'] !== undefined) {
                 if (eventlist.queryParams['types'] == 'v')
@@ -800,10 +836,11 @@ var eventlist;
                     if (eventlist.active == 0) {// If today
                         var d = Date.now();
                         // Add to the top
-                        var obj = eventlist.getEvent (Math.floor(d / 1000) + " " + obj[0] + " " + obj[1], eventlist.newEvents);
-                        if (obj) {
-                            $("#histTable" + eventlist.count).jqGrid('addRowData', eventlist.newEvents, obj, "first");
-                            $("#histTable" + eventlist.count).jqGrid().trigger('reloadGrid');
+                        var obj_ = eventlist.getEvent (Math.floor(d / 1000) + " " + obj[0] + " " + obj[1], eventlist.newEvents);
+                        if (obj_) {
+							var tt = $("#histTable" + eventlist.count);
+                            tt.jqGrid('addRowData', eventlist.newEvents, obj_, "first");
+                            tt.jqGrid().trigger('reloadGrid');
                             eventlist.newEvents--;
                         }
                     }
@@ -811,14 +848,19 @@ var eventlist;
             }                
             
             $(".eventlist-version").html(eventlist.version);
-            
-            if ((eventlist.regaObjects == undefined && regaObjects == undefined) || 
-                (eventlist.regaIndex   == undefined && regaIndex   == undefined)) {
+
+            eventlist.stringTable = strtable;
+
+            if ((eventlist.regaObjects == null && regaObjects == undefined) ||
+                (eventlist.regaIndex   == null && regaIndex   == undefined)) {
                 eventlist.loadData (eventlist.loadLogsList);
             }
-            else
+            else {
+                eventlist.regaObjects = (eventlist.regaObjects != null) ? eventlist.regaObjects : regaObjects;
+                eventlist.regaIndex   = (eventlist.regaIndex   != null) ? eventlist.regaIndex   : regaIndex;
                 eventlist.loadLogsList ();
-        },
+            }
+        }
     };
 
 })(jQuery);
