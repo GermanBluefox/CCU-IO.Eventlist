@@ -9,7 +9,7 @@ Natürlich ist CCU.IO erforderlich.
 
 Bedienung: 
 - http://ip-address:8080/eventlist/index.html aufrufen.
-- Die Werte in Zeilen "Raum", "Bild" und "Typ" sind clickbar und man kann damit filtern. Zeiwetes Drucken löscht den Filter.<br>
+- Die Werte in Zeilen "Raum", "Bild" und "Typ" sind klickbar und man kann damit filtern. Zweites Drücken löscht den Filter.<br>
 
 ##Installation
 Einfach in das Verzeichnis www von ccu.io kopieren.
