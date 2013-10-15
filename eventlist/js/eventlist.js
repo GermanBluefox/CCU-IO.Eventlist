@@ -5,11 +5,15 @@
  *
  *      Copyright (c) 2013 Bluefox https://github.com/GermanBluefox
  *
- *      Lizenz: CC BY-NC 3.0 http://creativecommons.org/licenses/by-nc/3.0/de/
+ *      Lizenz: CC BY-NC 3.0 http://creativecommons.org/licenses/by-nc/3.0/legalcode
  *
- *      Die Veröffentlichung dieser Software erfolgt in der Hoffnung, daß sie Ihnen von Nutzen sein wird, aber
- *      OHNE IRGENDEINE GARANTIE, sogar ohne die implizite Garantie der MARKTREIFE oder der VERWENDBARKEIT FÜR EINEN
- *      BESTIMMTEN ZWECK.
+ *      THE WORK (AS DEFINED BELOW) IS PROVIDED UNDER THE TERMS OF THIS CREATIVE COMMONS PUBLIC LICENSE ("CCPL" OR "LICENSE"). 
+ *      THE WORK IS PROTECTED BY COPYRIGHT AND/OR OTHER APPLICABLE LAW. ANY USE OF THE WORK OTHER THAN AS AUTHORIZED UNDER 
+ *      THIS LICENSE OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ *      BY EXERCISING ANY RIGHTS TO THE WORK PROVIDED HERE, YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE. 
+ *      TO THE EXTENT THIS LICENSE MAY BE CONSIDERED TO BE A CONTRACT, THE LICENSOR GRANTS YOU THE RIGHTS CONTAINED HERE 
+ *      IN CONSIDERATION OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
  *
  *      Parameters:
  *      - loading  - Show loading process
@@ -37,7 +41,7 @@ var eventlist;
             width:       0,      // Width of table: 0 is 100%
             itemsOnPage: 250     // Number of events in one page
         },
-        version:     "0.0.2",
+        version:     "0.0.3",
         socket:      null,
         regaObjects: null,
         regaIndex:   null,
@@ -67,7 +71,12 @@ var eventlist;
                 rooms[eventlist.regaObjects[eventlist.regaIndex['ENUM_ROOMS'][i]]['Name']] = eventlist.regaObjects[eventlist.regaIndex['ENUM_ROOMS'][i]]['Name'];
             }
             
-            
+            var funcs = {"": eventlist.translate("All")};
+            // Create functions dropdown 
+            for (var i = 0; i < eventlist.regaIndex['ENUM_FUNCTIONS'].length; i++) {
+                funcs[eventlist.regaObjects[eventlist.regaIndex['ENUM_FUNCTIONS'][i]]['Name']] = eventlist.regaObjects[eventlist.regaIndex['ENUM_FUNCTIONS'][i]]['Name'];
+            }
+           
             var colNames;
             var colModel;
             if (eventlist.settings.advanced) {
@@ -82,11 +91,12 @@ var eventlist;
                 ];
             }
             else {
-                colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Room'), '', eventlist.translate ('Name'), eventlist.translate ('Type'), eventlist.translate ('Value')];
+                colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Room'), eventlist.translate ('Function'), '', eventlist.translate ('Name'), eventlist.translate ('Type'), eventlist.translate ('Value')];
                 colModel = [
                     {name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
                     {name:'Time',     index:'Time',      width:50,  sortable:false},
                     {name:'Room',     index:'Room',      width:100, sorttype: 'text',align:"right",  stype: 'select', editoptions: { value: rooms }, searchoptions:{value:rooms, sopt:['cn']}},
+                    {name:'Function', index:'Function',  width:100, sorttype: 'text',align:"right",  stype: 'select', editoptions: { value: funcs }, searchoptions:{value:funcs, sopt:['cn']}},
                     {name:'Image',    index:'Image',     width:22,  sortable:false,  align:"center", search: false},
                     {name:'Name',     index:'Name',      width:250, sorttype: 'text'},
                     {name:'Type',     index:'Type',      width:100, sortable:false},
@@ -117,7 +127,6 @@ var eventlist;
                 gridComplete: function(){
                     var grid = $("#histTable" + eventlist.count);
                     var data = grid.jqGrid("getGridParam", "postData");
-                    //var ids  = grid.jqGrid('getDataIDs');
 
                     if ((data.searchField == "Type"))
                         $('#jqgh_histTable' + eventlist.count + "_Type").html(data.searchString);
@@ -325,7 +334,7 @@ var eventlist;
                 return "";
         }, // Get image for type
         getObjDesc: function (id) {
-            var obj = {name: "", type: "", parentType: "", room: "System", unit: ""};
+            var obj = {name: "", type: "", parentType: "", room: "System", unit: "", func: ""};
             
             if (eventlist.regaObjects == null)
                 return null;
@@ -335,6 +344,7 @@ var eventlist;
                 var p = eventlist.regaObjects[id]["Parent"];
                 var n = eventlist.regaObjects[id]["Name"];
                 var rooms = eventlist.regaIndex["ENUM_ROOMS"];
+                var funcs = eventlist.regaIndex["ENUM_FUNCTIONS"];
                 
                 obj.unit = eventlist.regaObjects[id]["ValueUnit"];
                 if (obj.unit == "100%" || obj.unit === undefined)
@@ -348,7 +358,17 @@ var eventlist;
                             break;
                         }
                     } 
-                }                        
+                }           
+				
+                for (var func in funcs) {
+                    var funcObj = eventlist.regaObjects[funcs[func]];
+                    for (var k = 0; k < funcObj["Channels"].length; k++){
+                        if (funcObj["Channels"][k] == p){
+                            obj.func = funcObj["Name"];
+                            break;
+                        }
+                    } 
+                }   
                 
                 if (p !== undefined && eventlist.regaObjects[p]["DPs"] !== undefined) {
                     parent = eventlist.regaObjects[p]["Name"];
@@ -548,6 +568,7 @@ var eventlist;
                                 "id":     id,
                                 "Time":   eventlist.tick2date (triple[0], 2),
                                 "Room":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.room+'\', \'Room\')">'+eventlist.state[triple[1]].name.room+'</div>',
+                                "Function":'<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.func+'\', \'Function\')">'+eventlist.state[triple[1]].name.func+'</div>',
                                 "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
                                 "Name":   eventlist.state[triple[1]].name.name,
                                 "Action": (action._class != '') ? "<div class='"+action._class+"' >" + action.text  + "</div>" : action.text,
@@ -560,6 +581,7 @@ var eventlist;
                                 "id":     id,
                                 "Time":   eventlist.tick2date (triple[0], 2),
                                 "Room":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.room+'\', \'Room\')">'+eventlist.state[triple[1]].name.room+'</div>',
+                                "Function":'<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.func+'\', \'Function\')">'+eventlist.state[triple[1]].name.func+'</div>',
                                 "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
                                 "Name":   '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')">'+eventlist.state[triple[1]].name.name+'</div>',
                                 "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
@@ -751,6 +773,7 @@ var eventlist;
                     "Description":{ "de": "Beschreibung"},
                     "Value"     : {"de": "Wert"},
                     "Room"      : {"de": "Zimmer"},
+                    "Function"  : {"de": "Gewerk"},
                     "All"       : {"de": "Alle"},
                     "Only devices": {"de": "Nur Ger&auml;te"},
                     "Only variables": {"de": "Nur Variablen"}
