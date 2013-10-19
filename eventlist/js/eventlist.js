@@ -24,6 +24,8 @@
  *      - types    - Show "a"ll, Show only "v"ariables, show Only "d"evices
  *      - width    - Width of window
  *      - pcount   - Number of items on one page at start. Can be: 25,50,100,250,500,750,1000
+ *      - value    - Show only events with this value
+ *      - compact  - Show only time if value is filtered, if no value filter, so show value too
  */
 
 var eventlist;
@@ -39,9 +41,11 @@ var eventlist;
             onlyStates:  true,   // Filter out humidity, temperature and so on
             showTypes:   0,      // 0 - all, 1 - devices, 2 - variables
             width:       0,      // Width of table: 0 is 100%
-            itemsOnPage: 250     // Number of events in one page
+            itemsOnPage: 250,    // Number of events in one page
+			value:       null,   // Filter for values (null: filter is OFF)
+			compact:     false   //  Show only time if value is filtered, if no value filter, so show value too
         },
-        version:     "0.0.3",
+        version:     "0.0.4",
         socket:      null,
         regaObjects: null,
         regaIndex:   null,
@@ -55,6 +59,7 @@ var eventlist;
         state:       [],
         queryParams: null,
         today:       null,
+		isHideHeader: false,
         
 
         show: function () {
@@ -79,6 +84,28 @@ var eventlist;
            
             var colNames;
             var colModel;
+			eventlist.isHideHeader = false;
+			if (eventlist.settings.compact) {
+				// Show time and value
+				if (eventlist.settings.value == null) {
+					colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Value')];
+					colModel = [
+						{name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
+						{name:'Time',     index:'Time',      width:50,  sortable:false},
+						{name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false}
+					];
+				}
+				// Show only time
+				else {
+					eventlist.isHideHeader = true;
+					colNames = ['Id', eventlist.translate ('Time')];
+					colModel = [
+						{name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
+						{name:'Time',     index:'Time',      width:50,  align: 'center', sortable:false},
+					];
+				}
+			}
+			else
             if (eventlist.settings.advanced) {
                 colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Room'), '', eventlist.translate ('Description'), eventlist.translate ('Type')];
                 colModel = [
@@ -103,13 +130,25 @@ var eventlist;
                     {name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false}
                 ];
             }
+			if (eventlist.logData[eventlist.active].data.length == 0) {
+				eventlist.logData[eventlist.active].data[0] = {
+                                "id":     1,
+                                "Time":   0,
+                                "Room":   "",
+                                "Function":"",
+                                "Image": "",
+                                "Name":   eventlist.translate ("No entries"),
+                                "Type":   "",
+                                "Value":  ""
+                            };
+			}
 
             
             // Create the grid
-            $("#histTable" + eventlist.count).jqGrid({
+            var histTable = $("#histTable" + eventlist.count).jqGrid({
                 datatype:    "local",
                 data:        eventlist.logData[eventlist.active].data,
-                height:      eventlist.jHtml.height() - 80,
+                height:      eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : 75),
                 autowidth:   true,
                 shrinkToFit: true,
                 scrollOffset :50,
@@ -122,7 +161,7 @@ var eventlist;
                 multiplesearch: true,
                 search : true,
                 pager: '#histPager' + eventlist.count,
-                viewrecords: true,
+                viewrecords: !eventlist.settings.compact,
                 rowList:[25,50,100,250,500,750,1000],
                 gridComplete: function(){
                     var grid = $("#histTable" + eventlist.count);
@@ -151,27 +190,35 @@ var eventlist;
                              $('#jqgh_histTable' + eventlist.count + "_Name").html(eventlist.translate ('Name'));
                     }
                 }
-            }).jqGrid('filterToolbar',{stringResult: true, searchOnEnter : false, defaultSearch: 'cn'});
+            })
+			if (!eventlist.settings.compact) {
+				histTable.jqGrid('filterToolbar',{stringResult: true, searchOnEnter : false, defaultSearch: 'cn'});
+			}
+			if (eventlist.isHideHeader) {
+				$(".ui-jqgrid-hdiv").hide();
+			}
             
             // Add date selector
             var select = '<table style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;"><tr style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;"><td style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;">\n';
-            select += '<input type="text" id="histDate' + eventlist.count + '" />';
+            select += '&nbsp;<input type="text" id="histDate' + eventlist.count + '" style="width:60px"/>';
             select += "</td>\n";
-            select += '<td><select id="histType' + eventlist.count + '" onchange="eventlist.filterType()">\n';
-            select += '<option value="a">'+eventlist.translate('All')+'</option>';
-            select += '<option value="d">'+eventlist.translate('Only devices')+'</option>';
-            select += '<option value="v">'+eventlist.translate('Only variables')+'</option>';
-            select += '</select></td>';
+			if (!eventlist.settings.compact) {
+				select += '<td><select id="histType' + eventlist.count + '" onchange="eventlist.filterType()">\n';
+				select += '<option value="a">'+eventlist.translate('All')+'</option>';
+				select += '<option value="d">'+eventlist.translate('Only devices')+'</option>';
+				select += '<option value="v">'+eventlist.translate('Only variables')+'</option>';
+				select += '</select></td>';
+			}
             select += "<td style='border: 0px; border-spacing:0; padding: 0px; margin: 0px;'>\n";
             select += '<div id="loader_small" style="vertical-align: left; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">\n';
             select += '    <span class="ajax-loader-small"></span>\n';
             select += '</div></td></tr>\n';
             select += '</table>';
             $('#histPager'+ eventlist.count + '_left').append (select); 
-            // Select filter types
-            document.getElementById ('histType'+ eventlist.count).options[eventlist.settings.showTypes].selected = true;            
-                
-
+			if (!eventlist.settings.compact) {
+				// Select filter types
+				document.getElementById ('histType'+ eventlist.count).options[eventlist.settings.showTypes].selected = true;
+			}
             
             var d = new Date();
             var histDate = $('#histDate'+ eventlist.count);
@@ -211,7 +258,7 @@ var eventlist;
             $(window).resize (function () {
                 $("#histTable" + eventlist.count).
                     setGridWidth  (eventlist.jHtml.width()).
-                    setGridHeight (eventlist.jHtml.height() - 80);
+                    setGridHeight (eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : 75));
             });
             
         },
@@ -408,24 +455,38 @@ var eventlist;
 
             return obj;
         },           
-        filterOut: function (hm_id, type) {
+        filterOut: function (hm_id, type, value) {
             if (eventlist.settings.onlyStates && /*type != "STATE"*/ 
                 (type == 'BRIGHTNESS' || 
                  type == 'WORKING' || 
                  type == 'HUMIDITY' || 
                  type == 'TEMPERATURE' || 
                  type == 'UNREACH_CTR' || 
-                 type == 'STICKY_UNREACH'|| 
-                 type == 'ADJUSTING_COMMAND'|| 
-                 type == 'ADJUSTING_DATA'|| 
-                 type == 'Variable'|| 
-                 type == 'DIRECTION'|| 
-                 type == 'INFO'|| 
+                 type == 'STICKY_UNREACH' || 
+                 type == 'ADJUSTING_COMMAND' || 
+                 type == 'ADJUSTING_DATA' || 
+                 type == 'Variable' || 
+                 type == 'DIRECTION' || 
+                 type == 'INFO' || 
                  type == 'IP'))
                 return true;
-            else if (eventlist.settings.hmID != null && eventlist.settings.hmID != hm_id)
-                return true;
-            else if (eventlist.settings.showTypes == 1 && type == "Variable")
+            
+			if (eventlist.settings.hmID != null && eventlist.settings.hmID.length > 0) {
+				var isFound = false;
+				for (var i = 0; i < eventlist.settings.hmID.length; i++)
+					if (eventlist.settings.hmID[i] == hm_id) {
+						isFound = true;
+						break;
+					}
+				if (!isFound)
+					return true;
+			}
+			if (eventlist.settings.value != null && eventlist.settings.value != value.toString())
+				return true;
+
+			
+            // showTypes: 0 - all, 1 - devices, 2 - variables
+			if (eventlist.settings.showTypes == 1 && type == "Variable")
                 return true;
             else
                 return (eventlist.settings.showTypes == 2 && type != "Variable");
@@ -459,8 +520,7 @@ var eventlist;
             $('#loader_small').show ();
             //$(window).resize (null);
             eventlist.loadLog (eventlist.active);
-            eventlist.newEvents = -1;                    
-            
+            eventlist.newEvents = -1;                              
         },         
         loadData: function (callback) {
             $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Objekte");
@@ -551,7 +611,7 @@ var eventlist;
                     else
                         eventlist.state[triple[1]].value = val;
                         
-                    if (eventlist.filterOut (triple[1], eventlist.state[triple[1]].name.type))
+                    if (eventlist.filterOut (triple[1], eventlist.state[triple[1]].name.type, val))
                         return null;
                         
                     if (eventlist.state[triple[1]].name.type == 'LEVEL') {
@@ -776,7 +836,8 @@ var eventlist;
                     "Function"  : {"de": "Gewerk"},
                     "All"       : {"de": "Alle"},
                     "Only devices": {"de": "Nur Ger&auml;te"},
-                    "Only variables": {"de": "Nur Variablen"}
+                    "Only variables": {"de": "Nur Variablen"},
+                    "No entries": {"de": "Keine Ereignisse"}
                 };
             }
             if (eventlist.words[text]) {
@@ -796,11 +857,14 @@ var eventlist;
             if (eventlist.queryParams['loading'] !== undefined) {
                 eventlist.settings.loading = (eventlist.queryParams['loading'] == "true");
             }
+            if (eventlist.queryParams['compact'] !== undefined) {
+                eventlist.settings.compact = (eventlist.queryParams['compact'] == "true");
+            }
             if (eventlist.queryParams['advanced'] !== undefined) {
                 eventlist.settings.advanced = (eventlist.queryParams['advanced'] == "true");
             }            
             if (eventlist.queryParams['hmid'] !== undefined) {
-                eventlist.settings.hmID = (eventlist.queryParams['hmid'] == "true");
+                eventlist.settings.hmID = eventlist.queryParams['hmid'].split(',');
             }          
             if (eventlist.queryParams['lang'] !== undefined) {
                 eventlist.settings.lang = (eventlist.queryParams['lang'] == "true");
@@ -820,6 +884,9 @@ var eventlist;
                 else
                 if (eventlist.queryParams['types'] == 'd')
                     eventlist.settings.showTypes = 1;            
+            }   
+            if (eventlist.queryParams['value'] !== undefined) {
+				eventlist.settings.value = eventlist.queryParams['value'];
             }   
             
             eventlist.jHtml = $("#"+elemName);
