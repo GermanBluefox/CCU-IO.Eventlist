@@ -1,5 +1,6 @@
 {
     "version": "0.0.4",
+    "ident": "EVENTLIST",
     "name": "CCU.IO-Eventlist",
     "urlHomepage": "https://github.com/GermanBluefox/CCU-IO.Eventlist",
     "urlDownload": "https://github.com/GermanBluefox/CCU-IO.Eventlist/archive/master.zip",
