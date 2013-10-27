@@ -3,13 +3,17 @@
  *
  *      shows CCU.IO Logs as a Table
  *
- *      Copyright (c) 2013 Blueofx https://github.com/GermanBluefox
+ *      Copyright (c) 2013 Bluefox https://github.com/GermanBluefox
  *
- *      Lizenz: CC BY-NC 3.0 http://creativecommons.org/licenses/by-nc/3.0/de/
+ *      Lizenz: CC BY-NC 3.0 http://creativecommons.org/licenses/by-nc/3.0/legalcode
  *
- *      Die Veröffentlichung dieser Software erfolgt in der Hoffnung, daß sie Ihnen von Nutzen sein wird, aber
- *      OHNE IRGENDEINE GARANTIE, sogar ohne die implizite Garantie der MARKTREIFE oder der VERWENDBARKEIT FÜR EINEN
- *      BESTIMMTEN ZWECK.
+ *      THE WORK (AS DEFINED BELOW) IS PROVIDED UNDER THE TERMS OF THIS CREATIVE COMMONS PUBLIC LICENSE ("CCPL" OR "LICENSE").
+ *      THE WORK IS PROTECTED BY COPYRIGHT AND/OR OTHER APPLICABLE LAW. ANY USE OF THE WORK OTHER THAN AS AUTHORIZED UNDER
+ *      THIS LICENSE OR COPYRIGHT LAW IS PROHIBITED.
+ *
+ *      BY EXERCISING ANY RIGHTS TO THE WORK PROVIDED HERE, YOU ACCEPT AND AGREE TO BE BOUND BY THE TERMS OF THIS LICENSE.
+ *      TO THE EXTENT THIS LICENSE MAY BE CONSIDERED TO BE A CONTRACT, THE LICENSOR GRANTS YOU THE RIGHTS CONTAINED HERE
+ *      IN CONSIDERATION OF YOUR ACCEPTANCE OF SUCH TERMS AND CONDITIONS.
  *
  *      Parameters:
  *      - loading  - Show loading process
@@ -19,6 +23,9 @@
  *      - states   - Show only state changes. Do not show temperature, humidity, all cyclic values
  *      - types    - Show "a"ll, Show only "v"ariables, show Only "d"evices
  *      - width    - Width of window
+ *      - pcount   - Number of items on one page at start. Can be: 25,50,100,250,500,750,1000
+ *      - value    - Show only events with this value
+ *      - compact  - Show only time if value is filtered, if no value filter, so show value too
  */
 
 var eventlist;
@@ -33,14 +40,17 @@ var eventlist;
             hmID:        null,
             onlyStates:  true,   // Filter out humidity, temperature and so on
             showTypes:   0,      // 0 - all, 1 - devices, 2 - variables
-            width:       null,   // Width of table
-        
+            width:       0,      // Width of table: 0 is 100%
+            itemsOnPage: 250,    // Number of events in one page
+            value:       null,   // Filter for values (null: filter is OFF)
+            compact:     false   //  Show only time if value is filtered, if no value filter, so show value too
         },
         version:     "0.0.5",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
         regaIndex:   null,
+        stringTable: null,
         logData:     [],
         jHtml:       null,   // jquery container object 
         count:       0,
@@ -50,24 +60,53 @@ var eventlist;
         state:       [],
         queryParams: null,
         today:       null,
+        isHideHeader: false,
+
 
         show: function () {
             if (document.getElementById("#histTable" + eventlist.count) == null) {
                 var txt  = "<table id='histTable" + eventlist.count + "'></table>";
-                    txt += "<div id='histPager" + eventlist.count + "'></div>";
+                txt += "<div id='histPager" + eventlist.count + "'></div>";
                 eventlist.jHtml.html(txt);
             }
-            
+
             var rooms = {"": eventlist.translate("All")};
             rooms["System"] = eventlist.translate("System");
             // Create rooms dropdown 
             for (var i = 0; i < eventlist.regaIndex['ENUM_ROOMS'].length; i++) {
                 rooms[eventlist.regaObjects[eventlist.regaIndex['ENUM_ROOMS'][i]]['Name']] = eventlist.regaObjects[eventlist.regaIndex['ENUM_ROOMS'][i]]['Name'];
             }
-            
-            
+
+            var funcs = {"": eventlist.translate("All")};
+            // Create functions dropdown 
+            for (var i = 0; i < eventlist.regaIndex['ENUM_FUNCTIONS'].length; i++) {
+                funcs[eventlist.regaObjects[eventlist.regaIndex['ENUM_FUNCTIONS'][i]]['Name']] = eventlist.regaObjects[eventlist.regaIndex['ENUM_FUNCTIONS'][i]]['Name'];
+            }
+
             var colNames;
             var colModel;
+            eventlist.isHideHeader = false;
+            if (eventlist.settings.compact) {
+                // Show time and value
+                if (eventlist.settings.value == null) {
+                    colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Value')];
+                    colModel = [
+                        {name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
+                        {name:'Time',     index:'Time',      width:50,  sortable:false},
+                        {name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false}
+                    ];
+                }
+                // Show only time
+                else {
+                    eventlist.isHideHeader = true;
+                    colNames = ['Id', eventlist.translate ('Time')];
+                    colModel = [
+                        {name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
+                        {name:'Time',     index:'Time',      width:50,  align: 'center', sortable:false},
+                    ];
+                }
+            }
+            else
             if (eventlist.settings.advanced) {
                 colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Room'), '', eventlist.translate ('Description'), eventlist.translate ('Type')];
                 colModel = [
@@ -76,32 +115,45 @@ var eventlist;
                     {name:'Room',     index:'Room',      width:100, sortable:false,  align:"right",  stype: 'select'},
                     {name:'Image',    index:'Image',     width:22,  sortable:false,  align:"center", search: false},
                     {name:'Action',   index:'Action',    width:400, sortable:false, search: false},
-                    {name:'Type',     index:'Type',      width:100, sortable:false},
+                    {name:'Type',     index:'Type',      width:100, sortable:false}
                 ];
             }
             else {
-                colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Room'), '', eventlist.translate ('Name'), eventlist.translate ('Type'), eventlist.translate ('Value')];
+                colNames = ['Id', eventlist.translate ('Time'), eventlist.translate ('Room'), eventlist.translate ('Function'), '', eventlist.translate ('Name'), eventlist.translate ('Type'), eventlist.translate ('Value')];
                 colModel = [
                     {name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
                     {name:'Time',     index:'Time',      width:50,  sortable:false},
                     {name:'Room',     index:'Room',      width:100, sorttype: 'text',align:"right",  stype: 'select', editoptions: { value: rooms }, searchoptions:{value:rooms, sopt:['cn']}},
+                    {name:'Function', index:'Function',  width:100, sorttype: 'text',align:"right",  stype: 'select', editoptions: { value: funcs }, searchoptions:{value:funcs, sopt:['cn']}},
                     {name:'Image',    index:'Image',     width:22,  sortable:false,  align:"center", search: false},
                     {name:'Name',     index:'Name',      width:250, sorttype: 'text'},
                     {name:'Type',     index:'Type',      width:100, sortable:false},
-                    {name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false},
+                    {name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false}
                 ];
             }
+            if (eventlist.logData[eventlist.active].data.length == 0) {
+                eventlist.logData[eventlist.active].data[0] = {
+                    "id":     1,
+                    "Time":   0,
+                    "Room":   "",
+                    "Function":"",
+                    "Image": "",
+                    "Name":   eventlist.translate ("No entries"),
+                    "Type":   "",
+                    "Value":  ""
+                };
+            }
 
-            
+
             // Create the grid
-            $("#histTable" + eventlist.count).jqGrid({
+            var histTable = $("#histTable" + eventlist.count).jqGrid({
                 datatype:    "local",
                 data:        eventlist.logData[eventlist.active].data,
-                height:      eventlist.jHtml.height() - 90,
+                height:      eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : 75),
                 autowidth:   true,
                 shrinkToFit: true,
                 scrollOffset :50,
-                rowNum       :750,
+                rowNum       :eventlist.settings.itemsOnPage,
                 pgbuttons: true,
                 colNames:colNames,
                 colModel:colModel,
@@ -110,93 +162,106 @@ var eventlist;
                 multiplesearch: true,
                 search : true,
                 pager: '#histPager' + eventlist.count,
-                viewrecords: true,
-                rowList:[100,500,750,1000],
+                viewrecords: !eventlist.settings.compact,
+                rowList:[25,50,100,250,500,750,1000],
                 gridComplete: function(){
                     var grid = $("#histTable" + eventlist.count);
                     var data = grid.jqGrid("getGridParam", "postData");
-                    var ids = $("#histTable" + eventlist.count).jqGrid('getDataIDs');
 
                     if ((data.searchField == "Type"))
                         $('#jqgh_histTable' + eventlist.count + "_Type").html(data.searchString);
                     else
-                         $('#jqgh_histTable' + eventlist.count + "_Type").html(eventlist.translate ('Type'))
-                         
+                        $('#jqgh_histTable' + eventlist.count + "_Type").html(eventlist.translate ('Type'));
+
                     if ((data.searchField == "Room"))
                         $('#jqgh_histTable' + eventlist.count + "_Room").html(data.searchString);
                     else
-                         $('#jqgh_histTable' + eventlist.count + "_Room").html(eventlist.translate ('Room'));
-                     
+                        $('#jqgh_histTable' + eventlist.count + "_Room").html(eventlist.translate ('Room'));
+
                     if (eventlist.settings.advanced) {
                         if ((data.searchField == "Name"))
                             $('#jqgh_histTable' + eventlist.count + "_Action").html(data.searchString);
                         else
-                             $('#jqgh_histTable' + eventlist.count + "_Action").html(eventlist.translate ('Description'));
+                            $('#jqgh_histTable' + eventlist.count + "_Action").html(eventlist.translate ('Description'));
                     }
                     else {
                         if ((data.searchField == "Name"))
                             $('#jqgh_histTable' + eventlist.count + "_Name").html(data.searchString);
                         else
-                             $('#jqgh_histTable' + eventlist.count + "_Name").html(eventlist.translate ('Name'));
+                            $('#jqgh_histTable' + eventlist.count + "_Name").html(eventlist.translate ('Name'));
                     }
-                },
-            }).jqGrid('filterToolbar',{stringResult: true, searchOnEnter : false, defaultSearch: 'cn'});
-            
+                }
+            })
+            if (!eventlist.settings.compact) {
+                histTable.jqGrid('filterToolbar',{stringResult: true, searchOnEnter : false, defaultSearch: 'cn'});
+            }
+            if (eventlist.isHideHeader) {
+                $(".ui-jqgrid-hdiv").hide();
+            }
+
             // Add date selector
             var select = '<table style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;"><tr style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;"><td style="border: 0px; border-spacing:0; padding: 0px; margin: 0px;">\n';
-            select += '<input type="text" id="histDate' + eventlist.count + '" />'
+            select += '&nbsp;<input type="text" id="histDate' + eventlist.count + '" style="width:60px"/>';
             select += "</td>\n";
-            select += '<td><select id="histType' + eventlist.count + '" onchange="eventlist.filterType()">\n';
-            select += '<option value="a">'+eventlist.translate('All')+'</option>';
-            select += '<option value="d">'+eventlist.translate('Only devices')+'</option>';
-            select += '<option value="v">'+eventlist.translate('Only variables')+'</option>';
-            select += '</select></td>';
-            select += "<td style='border: 0px; border-spacing:0; padding: 0px; margin: 0px;'>\n"
+            if (!eventlist.settings.compact) {
+                select += '<td><select id="histType' + eventlist.count + '" onchange="eventlist.filterType()">\n';
+                select += '<option value="a">'+eventlist.translate('All')+'</option>';
+                select += '<option value="d">'+eventlist.translate('Only devices')+'</option>';
+                select += '<option value="v">'+eventlist.translate('Only variables')+'</option>';
+                select += '</select></td>';
+            }
+            select += "<td style='border: 0px; border-spacing:0; padding: 0px; margin: 0px;'>\n";
             select += '<div id="loader_small" style="vertical-align: left; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">\n';
             select += '    <span class="ajax-loader-small"></span>\n';
             select += '</div></td></tr>\n';
             select += '</table>';
-            $('#histPager'+ eventlist.count + '_left').append (select); 
-            // Select filter types
-            document.getElementById ('histType'+ eventlist.count).options[eventlist.settings.showTypes].selected = true;            
-                
+            $('#histPager'+ eventlist.count + '_left').append (select);
+            if (!eventlist.settings.compact) {
+                // Select filter types
+                document.getElementById ('histType'+ eventlist.count).options[eventlist.settings.showTypes].selected = true;
+            }
 
-            
             var d = new Date();
-            $('#histDate'+ eventlist.count).datepicker ().datepicker( "option", "dateFormat", 'dd.mm.yy').datepicker( "option", "maxDate", new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+            var histDate = $('#histDate'+ eventlist.count);
+            histDate.datepicker ().datepicker( "option", "dateFormat", 'dd.mm.yy').datepicker( "option", "maxDate", new Date(d.getFullYear(), d.getMonth(), d.getDate()));
             var dd = eventlist.logData[eventlist.logData.length-1].date;
             dd = dd.split('.');
             if (eventlist.today == null) {
                 eventlist.today = $.datepicker.formatDate('dd.mm.yy', new Date());
             }
 
-            $('#histDate'+ eventlist.count).datepicker( "option", "minDate", new Date(parseInt(dd[2]), parseInt(dd[1]) - 1, parseInt(dd[0])));
-            
-            $('#histDate'+ eventlist.count).val(eventlist.logData[eventlist.active].date);    
-            
+            histDate.datepicker( "option", "minDate", new Date(parseInt(dd[2]), parseInt(dd[1]) - 1, parseInt(dd[0])));
+
+            histDate.val(eventlist.logData[eventlist.active].date);
+
             //document.getElementById ('histDate'+ eventlist.count).options[eventlist.active].selected = true;
-            
-            $('#histDate'+ eventlist.count).change (function () {
+
+            histDate.change (function () {
+                var grid = $("#histTable" + eventlist.count);
+                eventlist.settings.itemsOnPage = parseInt (grid.getGridParam('rowNum'));
+
                 var date = $('#histDate'+ eventlist.count).val();
                 if (date == eventlist.today)
                     date = eventlist.translate ("Today");
+
                 for (var i = 0; i < eventlist.logData.length; i++) {
-                    if ( eventlist.logData[i].date == date) {
+                    if (eventlist.logData[i].date == date) {
                         eventlist.active = i;
                         $('#loader_small').show ();
                         //$(window).resize (null);
                         eventlist.loadLog (eventlist.active);
-                        eventlist.newEvents = -1;                    
+                        eventlist.newEvents = -1;
                         break;
                     }
                 }
             });
             $('#loader_small').hide ();
             $(window).resize (function () {
-                $("#histTable" + eventlist.count).setGridWidth  (eventlist.jHtml.width());
-                $("#histTable" + eventlist.count).setGridHeight (eventlist.jHtml.height() - 90);
+                $("#histTable" + eventlist.count).
+                    setGridWidth  (eventlist.jHtml.width()).
+                    setGridHeight (eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : 75));
             });
-            
+
         },
         _getImage: function (type) {
             if (eventlist.images == null) {
@@ -309,7 +374,7 @@ var eventlist;
                     'HM-WDS100-C6-O':    'WeatherCombiSensor_thumb.png',
                     'HM-WDS10-TH-O':     'TH_CS_thumb.png',
                     'HM-WS550STH-O':     'TH_CS_thumb.png'
-                };	
+                };
             }
             if (eventlist.images[type])
                 return eventlist.deviceImgPath + eventlist.images[type];
@@ -317,45 +382,57 @@ var eventlist;
                 return "";
         }, // Get image for type
         getObjDesc: function (id) {
-            var obj = {name: "", type: "", parentType: "", room: "System", unit: ""};
-            
+            var obj = {name: "", type: "", parentType: "", room: "System", unit: "", func: ""};
+
             if (eventlist.regaObjects == null)
                 return null;
-            
+
             if (eventlist.regaObjects[id] !== undefined) {
                 var parent = "";
                 var p = eventlist.regaObjects[id]["Parent"];
                 var n = eventlist.regaObjects[id]["Name"];
                 var rooms = eventlist.regaIndex["ENUM_ROOMS"];
-                
+                var funcs = eventlist.regaIndex["ENUM_FUNCTIONS"];
+
                 obj.unit = eventlist.regaObjects[id]["ValueUnit"];
-                if (obj.unit == "100%" || obj.unit == undefined)
+                if (obj.unit == "100%" || obj.unit === undefined)
                     obj.unit = "";
 
                 for (var room in rooms) {
-                    for (var k = 0; k < eventlist.regaObjects[rooms[room]]["Channels"].length; k++){
-                        if (eventlist.regaObjects[rooms[room]]["Channels"][k] == p){
-                            obj.room = eventlist.regaObjects[rooms[room]]["Name"];
+                    var roomObj = eventlist.regaObjects[rooms[room]];
+                    for (var k = 0; k < roomObj["Channels"].length; k++){
+                        if (roomObj["Channels"][k] == p){
+                            obj.room = roomObj["Name"];
                             break;
                         }
-                    } 
-                }                        
-                
+                    }
+                }
+
+                for (var func in funcs) {
+                    var funcObj = eventlist.regaObjects[funcs[func]];
+                    for (var k = 0; k < funcObj["Channels"].length; k++){
+                        if (funcObj["Channels"][k] == p){
+                            obj.func = funcObj["Name"];
+                            break;
+                        }
+                    }
+                }
+
                 if (p !== undefined && eventlist.regaObjects[p]["DPs"] !== undefined) {
                     parent = eventlist.regaObjects[p]["Name"];
                     var t = n.lastIndexOf ('.');
                     if (t != -1)
-                        n = n.substring (t + 1);                
+                        n = n.substring (t + 1);
                     obj.type = n;
                     obj.parentType = eventlist.regaObjects[eventlist.regaObjects[p]['Parent']].HssType;
                 }
                 else if (eventlist.regaObjects[id]["TypeName"] !== undefined) {
-                    if (eventlist.regaObjects[id]["TypeName"] == "VARDP") {  
+                    if (eventlist.regaObjects[id]["TypeName"] == "VARDP") {
                         parent = eventlist.translate ("Variable") + " / ";
                         obj.type = eventlist.translate ("Variable");
                     }
                     else
-                    if (eventlist.regaObjects[id]["TypeName"] == "PROGRAM") {  
+                    if (eventlist.regaObjects[id]["TypeName"] == "PROGRAM") {
                         parent = eventlist.translate ("Program") + " / ";
                         obj.type = eventlist.translate ("Program");
                     }
@@ -363,10 +440,10 @@ var eventlist;
                 else {
                     obj.type = n;
                 }
-                
+
                 obj.name = parent;
             }
-            else 
+            else
             if (id == 41) {
                 obj.type = eventlist.translate ("System");
                 obj.name = eventlist.translate ("Service messages");
@@ -378,48 +455,61 @@ var eventlist;
             }
 
             return obj;
-        },           
-        filterOut: function (hm_id, type) {
-            if (eventlist.settings.onlyStates && /*type != "STATE"*/ 
-                (type == 'BRIGHTNESS' || 
-                 type == 'WORKING' || 
-                 type == 'HUMIDITY' || 
-                 type == 'TEMPERATURE' || 
-                 type == 'UNREACH_CTR' || 
-                 type == 'STICKY_UNREACH'|| 
-                 type == 'ADJUSTING_COMMAND'|| 
-                 type == 'ADJUSTING_DATA'|| 
-                 type == 'Variable'|| 
-                 type == 'DIRECTION'|| 
-                 type == 'INFO'|| 
-                 type == 'IP'))
+        },
+        filterOut: function (hm_id, type, value) {
+            if (eventlist.settings.onlyStates && /*type != "STATE"*/
+                (type == 'BRIGHTNESS' ||
+                    type == 'WORKING' ||
+                    type == 'HUMIDITY' ||
+                    type == 'TEMPERATURE' ||
+                    type == 'UNREACH_CTR' ||
+                    type == 'STICKY_UNREACH' ||
+                    type == 'ADJUSTING_COMMAND' ||
+                    type == 'ADJUSTING_DATA' ||
+                    type == 'Variable' ||
+                    type == 'DIRECTION' ||
+                    type == 'INFO' ||
+                    type == 'IP'))
                 return true;
-            else if (eventlist.settings.hmID != null && eventlist.settings.hmID != hm_id)
+
+            if (eventlist.settings.hmID != null && eventlist.settings.hmID.length > 0) {
+                var isFound = false;
+                for (var i = 0; i < eventlist.settings.hmID.length; i++)
+                    if (eventlist.settings.hmID[i] == hm_id) {
+                        isFound = true;
+                        break;
+                    }
+                if (!isFound)
+                    return true;
+            }
+            if (eventlist.settings.value != null && eventlist.settings.value != value.toString())
                 return true;
-            else if (eventlist.settings.showTypes == 1 && type == "Variable")
-                return true;
-            else if (eventlist.settings.showTypes == 2 && type != "Variable")
+
+
+            // showTypes: 0 - all, 1 - devices, 2 - variables
+            if (eventlist.settings.showTypes == 1 && type == "Variable")
                 return true;
             else
-                return false;
-            
-            
+                return (eventlist.settings.showTypes == 2 && type != "Variable");
+
+
         },
-        filterBy: function(value, filterBy) {     
+        filterBy: function(value, filterBy) {
             var grid = $("#histTable" + eventlist.count);
-            if ($("#gs_"+filterBy).val() != "") {
-                $("#gs_"+filterBy).val("").trigger("change");
+            var filter = $("#gs_"+filterBy);
+            if (filter.val() != "") {
+                filter.val("").trigger("change");
             }
             else {
-                $("#gs_"+filterBy).val(value).trigger("change");
+                filter.val(value).trigger("change");
             }
-            grid[0].triggerToolbar(); 
+            grid[0].triggerToolbar();
             //grid.filterToolbar({stringResult: true,searchOnEnter : false, defaultSearch: 'cn'});
-            
-            
+
+
             //grid.trigger("reloadGrid");
-        },        
-        filterType: function() {     
+        },
+        filterType: function() {
             var val = $("#histType" + eventlist.count).val();
             if (val == 'v')
                 eventlist.settings.showTypes = 2;
@@ -427,13 +517,12 @@ var eventlist;
                 eventlist.settings.showTypes = 1;
             else
                 eventlist.settings.showTypes = 0;
-            
+
             $('#loader_small').show ();
             //$(window).resize (null);
             eventlist.loadLog (eventlist.active);
-            eventlist.newEvents = -1;                    
-            
-        },         
+            eventlist.newEvents = -1;
+        },
         loadData: function (callback) {
             $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Objekte");
             eventlist.socket.emit('getObjects', function(obj) {
@@ -445,7 +534,7 @@ var eventlist;
                     eventlist.regaIndex = obj;
 
                     eventlist.ajaxDone();
-                    
+
                     if (callback) callback ();
                 });
             });
@@ -465,10 +554,10 @@ var eventlist;
         tick2date: function (tickSeconds, type) { // type = undefined => date + time, type = 1 => date, type = 2 => time
             var d = new Date();
             d.setTime (tickSeconds*1000);
-            
+
             var year, month, day;
             var hour, minute, second;
-            
+
             if (type == 1 || !type) { // Date
                 year   = d.getFullYear();
                 month  = (d.getMonth() + 1).toString(10);
@@ -484,7 +573,7 @@ var eventlist;
                 second = d.getSeconds().toString(10);
                 second = (second.length == 1 ? "0" + second : second);
             }
-            
+
             if (type == 1) // Date
                 return year + "." + month + "." + day;
             if (type == 2) // Time
@@ -495,24 +584,23 @@ var eventlist;
         getEvent: function (event, id) {
             if (eventlist.regaObjects == null || eventlist.regaIndex == null)
                 return null;
-        
+
             var triple = event.split(" ", 3);
-            var k   = triple.length;
             var val = triple[2];
             if (triple[0].length == 0)
                 return null;
             if (triple[0][0] == '"')
                 triple[0] = triple[0].substring(1);
-                
+
             if (triple[0] != "" && triple[0][0] >= '0' && triple[0][0] <= '9' && !isNaN(triple[0])) {  // timestamp in ms, dp,    value   
                 // If value realy changed
-                if (eventlist.state[triple[1]]      === undefined     || 
+                if (eventlist.state[triple[1]]      === undefined     ||
                     eventlist.state[triple[1]].type  == 'PRESS_SHORT' ||
                     eventlist.state[triple[1]].type  == 'PRESS_LONG'  ||
                     eventlist.state[triple[1]].value != val) {
                     if (eventlist.state[triple[1]] === undefined) {
                         eventlist.state[triple[1]] = {name: eventlist.getObjDesc (triple[1]), value: val};
-                        
+
                         // Filter out default states of lowbat and error
                         if (eventlist.onlyStates) {
                             if (eventlist.state[triple[1]].name.type == 'LOWBAT' && val == 'false')
@@ -523,10 +611,10 @@ var eventlist;
                     }
                     else
                         eventlist.state[triple[1]].value = val;
-                        
-                    if (eventlist.filterOut (triple[1], eventlist.state[triple[1]].name.type))
+
+                    if (eventlist.filterOut (triple[1], eventlist.state[triple[1]].name.type, val))
                         return null;
-                        
+
                     if (eventlist.state[triple[1]].name.type == 'LEVEL') {
                         val = ((parseFloat(val) * 100).toFixed(1) + '%').replace('.', ',');
                     }
@@ -534,36 +622,38 @@ var eventlist;
                         val += " " + eventlist.state[triple[1]].name.unit;
 
                     if (eventlist._clickFilter === undefined) eventlist._clickFilter = eventlist.translate ('Click to filter...');
-                    
+
                     if (eventlist.settings.advanced) {
-                        action = eventlist.getActionAndState (eventlist.state[triple[1]].name.name, eventlist.state[triple[1]].name.parentType, eventlist.state[triple[1]].name.type, val);
+                        var action = eventlist.getActionAndState (triple[1], eventlist.state[triple[1]].name.name, eventlist.state[triple[1]].name.parentType, eventlist.state[triple[1]].name.type, val);
                         return{
-                                "id":     id,
-                                "Time":   eventlist.tick2date (triple[0], 2),
-                                "Room":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.room+'\', \'Room\')">'+eventlist.state[triple[1]].name.room+'</div>',
-                                "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
-                                "Name":   eventlist.state[triple[1]].name.name,
-                                "Action": (action._class != '') ? "<div class='"+action._class+"' >" + action.text  + "</div>" : action.text,
-                                "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
-                                "Value":  (action._class != '') ? "<div class='"+action._class+"' >" + action.value + "</div>" : action.value,
-                            };
+                            "id":     id,
+                            "Time":   eventlist.tick2date (triple[0], 2),
+                            "Room":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.room+'\', \'Room\')">'+eventlist.state[triple[1]].name.room+'</div>',
+                            "Function":'<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.func+'\', \'Function\')">'+eventlist.state[triple[1]].name.func+'</div>',
+                            "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
+                            "Name":   eventlist.state[triple[1]].name.name,
+                            "Action": (action._class != '') ? "<div class='"+action._class+"' >" + action.text  + "</div>" : action.text,
+                            "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
+                            "Value":  (action._class != '') ? "<div class='"+action._class+"' >" + action.value + "</div>" : action.value
+                        };
                     }
                     else {
                         return{
-                                "id":     id,
-                                "Time":   eventlist.tick2date (triple[0], 2),
-                                "Room":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.room+'\', \'Room\')">'+eventlist.state[triple[1]].name.room+'</div>',
-                                "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
-                                "Name":   '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')">'+eventlist.state[triple[1]].name.name+'</div>',
-                                "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
-                                "Value":  val,
-                            };
+                            "id":     id,
+                            "Time":   eventlist.tick2date (triple[0], 2),
+                            "Room":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.room+'\', \'Room\')">'+eventlist.state[triple[1]].name.room+'</div>',
+                            "Function":'<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.func+'\', \'Function\')">'+eventlist.state[triple[1]].name.func+'</div>',
+                            "Image":  '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')"><img src="'+eventlist._getImage(eventlist.state[triple[1]].name.parentType)+'" width=22 height=22 border=0/></div>',
+                            "Name":   '<div id="histName_'+id+'" title="'+eventlist._clickFilter+'" onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.name+'\', \'Name\')">'+eventlist.state[triple[1]].name.name+'</div>',
+                            "Type":   '<div onclick="eventlist.filterBy(\''+eventlist.state[triple[1]].name.type+'\', \'Type\')">'+eventlist.state[triple[1]].name.type+'</div>',
+                            "Value":  val
+                        };
                     }
                 }
             }
 
-            return null;            
-        },      
+            return null;
+        },
         loadLog: function (indexToLoad) {
             // Do not load old logs, but today reload always
             if (indexToLoad > 0 && eventlist.logData[indexToLoad].loaded == true) {
@@ -571,24 +661,34 @@ var eventlist;
             }
 
             $("#loader_output2").prepend("<span class='ajax-loader'></span> lade "+eventlist.logData[indexToLoad].file+" ");
-            
-            eventlist.socket.emit('readRawFile', 'log/'+eventlist.logData[indexToLoad].file, function (data) {
-                eventlist.ajaxDone();
-                $("#loader_output2").prepend("<span class='ajax-loader'></span> verarbeite "+eventlist.logData[indexToLoad].file+" ");
-                var dataArr = data.split("\n");
-                var l   = dataArr.length;
-                
-                var cnt = 0;
-                eventlist.state = [];
-                for (var i = l - 1; i >= 0; i--) {
-                    var obj = eventlist.getEvent (dataArr[i], cnt + 1);
-                    if (obj != null) {
-                        eventlist.logData[eventlist.active].data[cnt++] = obj;
+
+            var log = eventlist.logData[indexToLoad].file;
+
+            if (log.match(/log$/)) {
+                log = log + "?" + (new Date().getTime());
+            }
+
+            $.ajax({
+                type: "GET",
+                url: '/log/'+log,
+                success: function (data) {
+                    eventlist.ajaxDone();
+                    $("#loader_output2").prepend("<span class='ajax-loader'></span> verarbeite "+eventlist.logData[indexToLoad].file+" ");
+                    var dataArr = data.split("\n");
+                    var l   = dataArr.length;
+
+                    var cnt = 0;
+                    eventlist.state = [];
+                    for (var i = l - 1; i >= 0; i--) {
+                        var obj = eventlist.getEvent (dataArr[i], cnt + 1);
+                        if (obj != null) {
+                            eventlist.logData[eventlist.active].data[cnt++] = obj;
+                        }
                     }
-                }    
-                eventlist.logData[indexToLoad].loaded = true;
-                eventlist.ajaxDone();
-                eventlist.show();
+                    eventlist.logData[indexToLoad].loaded = true;
+                    eventlist.ajaxDone();
+                    eventlist.show();
+                }
             });
         },
         ajaxDone: function () {
@@ -606,7 +706,7 @@ var eventlist;
             eventlist.socket.emit('readdir', "log", function (obj) {
                 eventlist.ajaxDone();
                 var l = eventlist.todayFile.length+1; // Store the file name length for optimization
-                
+
                 eventlist.logData[0] = {date: eventlist.translate("Today"), data: [], loaded: false, file: eventlist.todayFile};
                 for (var i = obj.length - 1; i >= 0 ; i--) {
                     if (obj[i].match(/devices\-variables\.log\./)) {
@@ -618,16 +718,31 @@ var eventlist;
                 }
                 eventlist.loadLog (eventlist.active);
             });
-        },       
-        getActionAndState: function (name, deviceType, pointType, value) {
+        },
+        getActionAndState: function (hmid, name, deviceType, pointType, value) {
             var action = {text: name + " / "+ pointType + " = " + value, _class: '', value: value};
-            
+
+            if (eventlist.regaObjects[hmid] !== undefined) {
+                var parent  = eventlist.regaObjects[hmid].Parent;
+                var devType = eventlist.stringTable[eventlist.regaObjects[parent]["ChnLabel"]];
+                if (devType !== undefined) {
+                    var varType = devType[pointType];
+                    if (varType !== undefined) {
+
+                    }
+                }
+            }
+            else  {
+                var debug = 1;
+            }
+
+
             if (pointType == 'LEVEL') {
-                var isFull = (value == "100,0%")
+                var isFull = (value == "100,0%");
                 action._class = isFull ? 'h-active-full' : '';
-                if (isFull) 
+                if (isFull)
                     action.text = name + " ist voll AUF";
-                else if (value == "0,0%") 
+                else if (value == "0,0%")
                     action.text = name + " ist voll ZU";
                 else
                     action.text = name + " ist auf " + action.value + " auf";
@@ -659,12 +774,12 @@ var eventlist;
             if (pointType == 'PRESS_LONG') {
                 action.text  = name + "wurde <span class='h-lang'>lang</span> gedruckt";
                 action.value = '';
-            }            
+            }
             else
             if (pointType == 'PRESS_SHORT') {
                 action.text  = name + " wurde kurz gedruckt";
                 action.value = '';
-            }            
+            }
             return action;
         },
         translateAlive: function (state) {
@@ -673,36 +788,36 @@ var eventlist;
                 eventlist._alive[0] = eventlist.translate ("Offline");
                 eventlist._alive[1] = eventlist.translate ("Online");
             }
-        
+
             if (state == "true")
                 return eventlist._alive[1];
             else
                 return eventlist._alive[0];
-        },        
+        },
         translateMotion: function (state) {
             if (eventlist._motion === undefined) {
                 eventlist._motion = [];
                 eventlist._motion[0] = eventlist.translate ("No motion");
                 eventlist._motion[1] = eventlist.translate ("Motion");
             }
-        
+
             if (state == "true")
                 return eventlist._motion[1];
             else
                 return eventlist._motion[0];
-        },         
+        },
         translateLowbat: function (state) {
             if (eventlist._lowbat === undefined) {
                 eventlist._lowbat = [];
                 eventlist._lowbat[0] = eventlist.translate ("no battery problem");
                 eventlist._lowbat[1] = eventlist.translate ("battery problem");
             }
-        
+
             if (state == "true")
                 return eventlist._lowbat[1];
             else
                 return eventlist._lowbat[0];
-        },         
+        },
         translate: function (text) {
             if (eventlist.words == null) {
                 eventlist.words = {
@@ -719,59 +834,73 @@ var eventlist;
                     "Description":{ "de": "Beschreibung"},
                     "Value"     : {"de": "Wert"},
                     "Room"      : {"de": "Zimmer"},
+                    "Function"  : {"de": "Gewerk"},
+                    "All"       : {"de": "Alle"},
+                    "Only devices": {"de": "Nur Ger&auml;te"},
+                    "Only variables": {"de": "Nur Variablen"},
+                    "No entries": {"de": "Keine Ereignisse"}
                 };
             }
             if (eventlist.words[text]) {
                 if (eventlist.words[text][eventlist.settings.lang])
                     return eventlist.words[text][eventlist.settings.lang];
-                else 
+                else
                 if (eventlist.words[text]["en"])
                     return eventlist.words[text]["en"];
             }
 
             return text;
         },
-        init: function (elemName, options, regaObjects, regaIndex) {
+        init: function (elemName, options, regaObjects, regaIndex, strtable) {
             eventlist.queryParams = eventlist.getUrlVars();
             eventlist.settings = $.extend (eventlist.settings, options);
-            
+
             if (eventlist.queryParams['loading'] !== undefined) {
-                eventlist.settings.loading = (eventlist.queryParams['loading'] == "true") ? true : false;
+                eventlist.settings.loading = (eventlist.queryParams['loading'] == "true");
+            }
+            if (eventlist.queryParams['compact'] !== undefined) {
+                eventlist.settings.compact = (eventlist.queryParams['compact'] == "true");
             }
             if (eventlist.queryParams['advanced'] !== undefined) {
-                eventlist.settings.advanced = (eventlist.queryParams['advanced'] == "true") ? true : false;
-            }            
+                eventlist.settings.advanced = (eventlist.queryParams['advanced'] == "true");
+            }
             if (eventlist.queryParams['hmid'] !== undefined) {
-                eventlist.settings.hmID = (eventlist.queryParams['hmid'] == "true") ? true : false;
-            }          
+                eventlist.settings.hmID = eventlist.queryParams['hmid'].split(',');
+            }
             if (eventlist.queryParams['lang'] !== undefined) {
-                eventlist.settings.lang = (eventlist.queryParams['lang'] == "true") ? true : false;
-            }   
+                eventlist.settings.lang = (eventlist.queryParams['lang'] == "true");
+            }
             if (eventlist.queryParams['states'] !== undefined) {
-                eventlist.settings.onlyStates = (eventlist.queryParams['states'] == "true") ? true : false;
-            }   
+                eventlist.settings.onlyStates = (eventlist.queryParams['states'] == "true");
+            }
             if (eventlist.queryParams['width'] !== undefined) {
                 eventlist.settings.width = parseInt(eventlist.queryParams['width']);
-            }   
+            }
+            if (eventlist.queryParams['pcount'] !== undefined) {
+                eventlist.settings.itemsOnPage = parseInt(eventlist.queryParams['pcount']);
+            }
             if (eventlist.queryParams['types'] !== undefined) {
                 if (eventlist.queryParams['types'] == 'v')
                     eventlist.settings.showTypes = 2;
                 else
                 if (eventlist.queryParams['types'] == 'd')
-                    eventlist.settings.showTypes = 1;            
-            }   
-            
+                    eventlist.settings.showTypes = 1;
+            }
+            if (eventlist.queryParams['value'] !== undefined) {
+                eventlist.settings.value = eventlist.queryParams['value'];
+            }
+
             eventlist.jHtml = $("#"+elemName);
-            
-            if (eventlist.settings.width != null) {
+
+            if (eventlist.settings.width !== null && eventlist.settings.width !== 0) {
                 eventlist.jHtml.width(eventlist.settings.width);
             }
-            
+
             if (eventlist.jHtml == null) {
                 window.alert ("HTML element " + elemName + " does not exist");
                 return;
             }
-        
+
             // Create trace outputs
             var sInfoText = '';
             if (eventlist.settings.loading) {
@@ -784,11 +913,11 @@ var eventlist;
             sInfoText += '<div id="loader_small" style="vertical-align: middle; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">';
             sInfoText += '    <span class="ajax-loader-small"></span>';
             sInfoText += '</div>';
-            
+
             eventlist.jHtml.append (sInfoText);
-        
+
             $('#loader').show();
-        
+
             // Verbindung zu CCU.IO herstellen.
             if (eventlist.socket == null) {
                 eventlist.socket = io.connect( $(location).attr('protocol') + '//' +  $(location).attr('host'));
@@ -804,25 +933,31 @@ var eventlist;
                     if (eventlist.active == 0) {// If today
                         var d = Date.now();
                         // Add to the top
-                        var obj = eventlist.getEvent (Math.floor(d / 1000) + " " + obj[0] + " " + obj[1], eventlist.newEvents);
-                        if (obj) {
-                            $("#histTable" + eventlist.count).jqGrid('addRowData', eventlist.newEvents, obj, "first");
-                            $("#histTable" + eventlist.count).jqGrid().trigger('reloadGrid');
+                        var obj_ = eventlist.getEvent (Math.floor(d / 1000) + " " + obj[0] + " " + obj[1], eventlist.newEvents);
+                        if (obj_) {
+                            var tt = $("#histTable" + eventlist.count);
+                            tt.jqGrid('addRowData', eventlist.newEvents, obj_, "first");
+                            tt.jqGrid().trigger('reloadGrid');
                             eventlist.newEvents--;
                         }
                     }
                 });
-            }                
-            
+            }
+
             $(".eventlist-version").html(eventlist.version);
-            
-            if ((eventlist.regaObjects == undefined && regaObjects == undefined) || 
-                (eventlist.regaIndex   == undefined && regaIndex   == undefined)) {
+
+            eventlist.stringTable = strtable;
+
+            if ((eventlist.regaObjects == null && regaObjects == undefined) ||
+                (eventlist.regaIndex   == null && regaIndex   == undefined)) {
                 eventlist.loadData (eventlist.loadLogsList);
             }
-            else
+            else {
+                eventlist.regaObjects = (eventlist.regaObjects != null) ? eventlist.regaObjects : regaObjects;
+                eventlist.regaIndex   = (eventlist.regaIndex   != null) ? eventlist.regaIndex   : regaIndex;
                 eventlist.loadLogsList ();
-        },
+            }
+        }
     };
 
 })(jQuery);
