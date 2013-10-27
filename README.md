@@ -28,7 +28,12 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 * jqGrid http://www.trirand.com/blog/
 
 ##Changelog
-*V 0.0.2
+
+* 0.0.5
+- CCU.IO Version Prüfung
+- Libs aus ccu.io/www/lib laden
+
+* 0.0.2
 - Einstellbare Anzahl von Ereignissen auf der Seite
 
 
