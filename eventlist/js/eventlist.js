@@ -26,6 +26,8 @@
  *      - pcount   - Number of items on one page at start. Can be: 25,50,100,250,500,750,1000
  *      - value    - Show only events with this value
  *      - compact  - Show only time if value is filtered, if no value filter, so show value too
+ *      - true     - Replace true with this value
+ *      - false    - Replace false with this value
  */
 
 var eventlist;
@@ -43,9 +45,11 @@ var eventlist;
             width:       0,      // Width of table: 0 is 100%
             itemsOnPage: 250,    // Number of events in one page
 			value:       null,   // Filter for values (null: filter is OFF)
-			compact:     false   //  Show only time if value is filtered, if no value filter, so show value too
+			compact:     false,  // Show only time if value is filtered, if no value filter, so show value too
+			vtrue:       null,   // Replace true with this value
+			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.4",
+        version:     "0.0.5",
         socket:      null,
         regaObjects: null,
         regaIndex:   null,
@@ -92,7 +96,7 @@ var eventlist;
 					colModel = [
 						{name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
 						{name:'Time',     index:'Time',      width:50,  sortable:false},
-						{name:'Value',    index:'Value',     width:100, sorttype: 'text', search: false}
+						{name:'Value',    index:'Value',     width:(eventlist.settings.openclose != true) ? 100: 50, sorttype: 'text', search: false}
 					];
 				}
 				// Show only time
@@ -148,7 +152,7 @@ var eventlist;
             var histTable = $("#histTable" + eventlist.count).jqGrid({
                 datatype:    "local",
                 data:        eventlist.logData[eventlist.active].data,
-                height:      eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : 75),
+                height:      eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : (eventlist.settings.compact ? 50: 75)),
                 autowidth:   true,
                 shrinkToFit: true,
                 scrollOffset :50,
@@ -258,7 +262,7 @@ var eventlist;
             $(window).resize (function () {
                 $("#histTable" + eventlist.count).
                     setGridWidth  (eventlist.jHtml.width()).
-                    setGridHeight (eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : 75));
+                    setGridHeight (eventlist.jHtml.height() - (eventlist.isHideHeader ? 25 : (eventlist.settings.compact ? 50: 75)));
             });
             
         },
@@ -616,6 +620,14 @@ var eventlist;
                         
                     if (eventlist.state[triple[1]].name.type == 'LEVEL') {
                         val = ((parseFloat(val) * 100).toFixed(1) + '%').replace('.', ',');
+                    } else
+                    if (eventlist.state[triple[1]].name.type == 'STATE') {
+						if (eventlist.settings.vtrue != null && val == "true") {
+							val = eventlist.settings.vtrue;
+						} else
+						if (eventlist.settings.vfalse != null && val == "false") {
+							val = eventlist.settings.vfalse;
+						}
                     }
                     if (eventlist.state[triple[1]].name.unit != "")
                         val += " " + eventlist.state[triple[1]].name.unit;
@@ -735,7 +747,6 @@ var eventlist;
                 var debug = 1;
             }
 
-
             if (pointType == 'LEVEL') {
                 var isFull = (value == "100,0%");
                 action._class = isFull ? 'h-active-full' : '';
@@ -837,7 +848,11 @@ var eventlist;
                     "All"       : {"de": "Alle"},
                     "Only devices": {"de": "Nur Ger&auml;te"},
                     "Only variables": {"de": "Nur Variablen"},
-                    "No entries": {"de": "Keine Ereignisse"}
+                    "No entries": {"de": "Keine Ereignisse"},
+                    "opened"    : {"de": "auf"},
+                    "closed"    : {"de": "zu"},
+                    "online"    : {"de": "online"},
+                    "offline"   : {"de": "offline"}
                 };
             }
             if (eventlist.words[text]) {
@@ -871,6 +886,12 @@ var eventlist;
             }   
             if (eventlist.queryParams['states'] !== undefined) {
                 eventlist.settings.onlyStates = (eventlist.queryParams['states'] == "true");
+            }   
+            if (eventlist.queryParams['true'] !== undefined) {
+                eventlist.settings.vtrue = eventlist.translate(eventlist.queryParams['true']);
+            }   
+            if (eventlist.queryParams['false'] !== undefined) {
+                eventlist.settings.vfalse = eventlist.translate(eventlist.queryParams['false']);
             }   
             if (eventlist.queryParams['width'] !== undefined) {
                 eventlist.settings.width = parseInt(eventlist.queryParams['width']);
