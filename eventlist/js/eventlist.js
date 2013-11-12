@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.6",
+        version:     "0.0.7",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -65,6 +65,7 @@ var eventlist;
         queryParams: null,
         today:       null,
         isHideHeader: false,
+		textNoEntries: null,
 
 
         show: function () {
@@ -138,11 +139,11 @@ var eventlist;
             if (eventlist.logData[eventlist.active].data.length == 0) {
                 eventlist.logData[eventlist.active].data[0] = {
                     "id":     1,
-                    "Time":   0,
+                    "Time":   eventlist.textNoEntries,
                     "Room":   "",
                     "Function":"",
                     "Image": "",
-                    "Name":   eventlist.translate ("No entries"),
+                    "Name":   eventlist.textNoEntries,
                     "Type":   "",
                     "Value":  ""
                 };
@@ -870,6 +871,9 @@ var eventlist;
         init: function (elemName, options, regaObjects, regaIndex, strtable) {
             eventlist.queryParams = eventlist.getUrlVars();
             eventlist.settings = $.extend (eventlist.settings, options);
+			if (eventlist.textNoEntries == null){
+				eventlist.textNoEntries = eventlist.translate ("No entries");
+			}
 
             if (eventlist.queryParams['loading'] !== undefined) {
                 eventlist.settings.loading = (eventlist.queryParams['loading'] == "true");
@@ -958,6 +962,12 @@ var eventlist;
                         var obj_ = eventlist.getEvent (Math.floor(d / 1000) + " " + obj[0] + " " + obj[1], eventlist.newEvents);
                         if (obj_) {
                             var tt = $("#histTable" + eventlist.count);
+							
+							// Delete "no entries" text
+							var empty = tt.jqGrid('getRowData', 1);
+							if (empty && empty["Time"] == eventlist.textNoEntries) {
+								tt.jqGrid('delRowData', 1);
+							}
                             tt.jqGrid('addRowData', eventlist.newEvents, obj_, "first");
                             tt.jqGrid().trigger('reloadGrid');
                             eventlist.newEvents--;
