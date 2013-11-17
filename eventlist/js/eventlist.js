@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.7",
+        version:     "0.0.8",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -946,7 +946,7 @@ var eventlist;
 
             // Verbindung zu CCU.IO herstellen.
             if (eventlist.socket == null) {
-                eventlist.socket = io.connect( $(location).attr('protocol') + '//' +  $(location).attr('host'));
+                eventlist.socket = io.connect( $(location).attr('protocol') + '//' +  $(location).attr('host')+"?key="+socketSession);
 
                 eventlist.socket.emit('getSettings', function (ccuIoSettings) {
                     if (ccuIoSettings.version < eventlist.requiredCcuIoVersion) {
