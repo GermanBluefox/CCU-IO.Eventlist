@@ -28,6 +28,9 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 * jqGrid http://www.trirand.com/blog/
 
 ##Changelog
+### 0.0.10
+ * (Bluefox) Add missing images for some devices.
+
 
 ### 0.0.5
  * (Hobbyquaker) CCU.IO Version Prüfung
