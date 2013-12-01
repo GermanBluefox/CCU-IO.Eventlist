@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.8",
+        version:     "0.0.9",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -378,7 +378,12 @@ var eventlist;
                     'HM-WDS30-T-O':      'IP65_G201_thumb.png',
                     'HM-WDS100-C6-O':    'WeatherCombiSensor_thumb.png',
                     'HM-WDS10-TH-O':     'TH_CS_thumb.png',
-                    'HM-WS550STH-O':     'TH_CS_thumb.png'
+                    'HM-WS550STH-O':     'TH_CS_thumb.png',
+					'HM-Sen-Wa-Od':      '82_hm-sen-wa-od_thumb.png',
+					'HM-PB-6-WM55':      '86_hm-pb-6-wm55_thumb.png',
+					'HM-RC-4-2':         '84_hm-rc-4-2_thumb.png',
+					'HM-WDS30-OT2-SM':   'IP65_G201_thumb.png',
+					'HM-RC-19-SW':       '20_hm-rc-19_thumb.png'
                 };
             }
             if (eventlist.images[type])
