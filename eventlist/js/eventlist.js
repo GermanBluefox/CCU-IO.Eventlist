@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.10",
+        version:     "0.0.11",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -107,7 +107,7 @@ var eventlist;
                     colNames = ['Id', eventlist.translate ('Time')];
                     colModel = [
                         {name:'id',       index:'id',        width:1,   sorttype: 'int', hidden:true, key:true},
-                        {name:'Time',     index:'Time',      width:50,  align: 'center', sortable:false},
+                        {name:'Time',     index:'Time',      width:50,  align: 'center', sortable:false}
                     ];
                 }
             }
@@ -216,7 +216,7 @@ var eventlist;
                 select += '</select></td>';
             }
             select += "<td style='border: 0px; border-spacing:0; padding: 0px; margin: 0px;'>\n";
-            select += '<div id="loader_small" style="vertical-align: left; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">\n';
+            select += '<div id="loader_small" style="vertical-align: middle; text-align: left; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">\n';
             select += '    <span class="ajax-loader-small"></span>\n';
             select += '</div></td></tr>\n';
             select += '</table>';
@@ -383,7 +383,9 @@ var eventlist;
 					'HM-PB-6-WM55':      '86_hm-pb-6-wm55_thumb.png',
 					'HM-RC-4-2':         '84_hm-rc-4-2_thumb.png',
 					'HM-WDS30-OT2-SM':   'IP65_G201_thumb.png',
-					'HM-RC-19-SW':       '20_hm-rc-19_thumb.png'
+					'HM-RC-19-SW':       '20_hm-rc-19_thumb.png',
+                    'SONOS_ROOT':        'sonos.png',
+                    'PING':              'pc.png'
                 };
             }
             if (eventlist.images[type])
