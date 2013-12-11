@@ -28,6 +28,10 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 * jqGrid http://www.trirand.com/blog/
 
 ##Changelog
+### 0.0.12
+ * (Bluefox) Add alarms image and type (Thanks an "harvey").
+ 
+
 ### 0.0.11
  * (Bluefox) Add images for PING and SONOS.
  

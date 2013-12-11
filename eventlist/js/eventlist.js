@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.11",
+        version:     "0.0.12",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -87,6 +87,9 @@ var eventlist;
             for (var i = 0; i < eventlist.regaIndex['ENUM_FUNCTIONS'].length; i++) {
                 funcs[eventlist.regaObjects[eventlist.regaIndex['ENUM_FUNCTIONS'][i]]['Name']] = eventlist.regaObjects[eventlist.regaIndex['ENUM_FUNCTIONS'][i]]['Name'];
             }
+			funcs["Alarms"]   = eventlist.translate("Alarms");
+			funcs["Program"]  = eventlist.translate("Program");
+			funcs["Variable"] = eventlist.translate("Variable");
 
             var colNames;
             var colModel;
@@ -443,11 +446,13 @@ var eventlist;
                     if (eventlist.regaObjects[id]["TypeName"] == "VARDP") {
                         parent   = eventlist.translate ("Variable") + " / ";
                         obj.type = eventlist.translate ("Variable");
+			            obj.func = eventlist.translate ("Variable");
                     }
                     else
                     if (eventlist.regaObjects[id]["TypeName"] == "PROGRAM") {
                         parent   = eventlist.translate ("Program") + " / ";
                         obj.type = eventlist.translate ("Program");
+			            obj.func = eventlist.translate ("Program");
                     }
                     else
 					if (eventlist.regaObjects[id]["TypeName"] == "ALARMDP") {
@@ -472,7 +477,7 @@ var eventlist;
             else
             if (id == 40) {
                 obj.type = eventlist.translate ("System");
-                obj.name = eventlist.translate ("Alarms");
+                obj.name = eventlist.translate ("Alarm");
             }
 
             return obj;
