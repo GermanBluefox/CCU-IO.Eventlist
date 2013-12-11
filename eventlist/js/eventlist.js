@@ -385,7 +385,8 @@ var eventlist;
 					'HM-WDS30-OT2-SM':   'IP65_G201_thumb.png',
 					'HM-RC-19-SW':       '20_hm-rc-19_thumb.png',
                     'SONOS_ROOT':        'sonos.png',
-                    'PING':              'pc.png'
+                    'PING':              'pc.png',
+                    'Alarm':             'alarm.png'
                 };
             }
             if (eventlist.images[type])
@@ -394,7 +395,7 @@ var eventlist;
                 return "";
         }, // Get image for type
         getObjDesc: function (id) {
-            var obj = {name: "", type: "", parentType: "", room: "System", unit: "", func: ""};
+            var obj = {name: "", type: "", parentType: "", room: "", unit: "", func: ""};
 
             if (eventlist.regaObjects == null)
                 return null;
@@ -440,15 +441,23 @@ var eventlist;
                 }
                 else if (eventlist.regaObjects[id]["TypeName"] !== undefined) {
                     if (eventlist.regaObjects[id]["TypeName"] == "VARDP") {
-                        parent = eventlist.translate ("Variable") + " / ";
+                        parent   = eventlist.translate ("Variable") + " / ";
                         obj.type = eventlist.translate ("Variable");
                     }
                     else
                     if (eventlist.regaObjects[id]["TypeName"] == "PROGRAM") {
-                        parent = eventlist.translate ("Program") + " / ";
+                        parent   = eventlist.translate ("Program") + " / ";
                         obj.type = eventlist.translate ("Program");
                     }
-                }
+                    else
+					if (eventlist.regaObjects[id]["TypeName"] == "ALARMDP") {
+			            parent   = eventlist.translate ("Alarms") + " / " + n;
+			            obj.name = eventlist.translate ("Alarms");
+			            obj.type = eventlist.translate ("Alarms");
+			            obj.func = eventlist.translate ("Alarms");
+			            obj.parentType = "Alarm";
+					}
+     	        }
                 else {
                     obj.type = n;
                 }
