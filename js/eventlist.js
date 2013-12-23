@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.14",
+        version:     "0.0.15",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -291,6 +291,7 @@ var eventlist;
                     'HM-Sys-sRP-Pl':     'OM55_DimmerSwitch_thumb.png',
                     'HM-LC-Dim1T-Pl-2':  'OM55_DimmerSwitch_thumb.png',
                     'HM-LC-Sw1-Pl-2':    'OM55_DimmerSwitch_thumb.png',
+                    'HM-CC-RT-DN':       '83_hm-cc-rt-dn_thumb.png',
                     'HM-Sen-WA-OD':      '82_hm-sen-wa-od_thumb.png',
                     'HM-Dis-TD-T':       '81_hm-dis-td-t_thumb.png',
                     'HM-Sen-MDIR-O':     '80_hm-sen-mdir-o_thumb.png',
