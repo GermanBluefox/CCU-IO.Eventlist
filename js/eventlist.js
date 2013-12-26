@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.16",
+        version:     "0.0.17",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
