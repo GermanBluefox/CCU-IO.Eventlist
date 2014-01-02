@@ -1,9 +1,9 @@
 {
-    "version": "0.0.16",
+    "version": "0.0.17",
     "ident": "EVENTLIST",
     "dirname": "eventlist",
-    "name": "CCU.IO-Eventlist",
+    "name": "Eventlist",
     "urlHomepage": "http://ccu.io/addons.html#eventlist",
     "urlDownload": "https://github.com/GermanBluefox/CCU-IO.Eventlist/archive/master.zip",
-    "urlMeta": "https://raw.github.com/GermanBluefox/CCU-IO.Eventlist/master/eventlist/io-addon.json"
+    "urlMeta": "https://raw.github.com/GermanBluefox/CCU-IO.Eventlist/master/io-addon.json"
 }
