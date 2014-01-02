@@ -957,10 +957,11 @@ var eventlist;
                 sInfoText += '        <div id="loader_output2"></div>';
                 sInfoText += '    </div>';
                 sInfoText += '</div>';
+            } else {
+                sInfoText += '<div id="loader_small" style="vertical-align: middle; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">';
+                sInfoText += '    <span class="ajax-loader-small"></span>';
+                sInfoText += '</div>';
             }
-            sInfoText += '<div id="loader_small" style="vertical-align: middle; text-align: center; z-index:500; position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; margin: 0 auto; ">';
-            sInfoText += '    <span class="ajax-loader-small"></span>';
-            sInfoText += '</div>';
 
             eventlist.jHtml.append (sInfoText);
 
