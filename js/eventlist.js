@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.16",
+        version:     "0.0.17",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -512,13 +512,14 @@ var eventlist;
             if (eventlist.settings.value != null && eventlist.settings.value != value.toString())
                 return true;
 
-
             // showTypes: 0 - all, 1 - devices, 2 - variables
-            if (eventlist.settings.showTypes == 1 && type == "Variable")
+            if (eventlist.settings.showTypes == 1 && type == "Variable") {
                 return true;
-            else
-                return (eventlist.settings.showTypes == 2 && type != "Variable");
-
+            }
+            if (eventlist.settings.showTypes == 2 && type != "Variable") {
+                return true;
+            }
+            return false;
 
         },
         filterBy: function(value, filterBy) {
@@ -538,16 +539,17 @@ var eventlist;
         },
         filterType: function() {
             var val = $("#histType" + eventlist.count).val();
-            if (val == 'v')
+            if (val == 'v') {
                 eventlist.settings.showTypes = 2;
-            else if (val == 'd')
+            } else if (val == 'd') {
                 eventlist.settings.showTypes = 1;
-            else
+            } else {
                 eventlist.settings.showTypes = 0;
+            }
 
             $('#loader_small').show ();
-            //$(window).resize (null);
-            eventlist.loadLog (eventlist.active);
+            //$(window).resize(null);
+            eventlist.loadLog(eventlist.active);
             eventlist.newEvents = -1;
         },
         loadData: function (callback) {
@@ -635,12 +637,14 @@ var eventlist;
                             if (eventlist.state[triple[1]].name.type == 'ERROR' && val == '0')
                                 return null;
                         }
-                    }
-                    else
+                    } else {
                         eventlist.state[triple[1]].value = val;
+                    }
 
-                    if (eventlist.filterOut (triple[1], eventlist.state[triple[1]].name.type, val))
+
+                    if (eventlist.filterOut(triple[1], eventlist.state[triple[1]].name.type, val)) {
                         return null;
+                    }
 
                     if (eventlist.state[triple[1]].name.type == 'LEVEL') {
                         val = ((parseFloat(val) * 100).toFixed(1) + '%').replace('.', ',');
