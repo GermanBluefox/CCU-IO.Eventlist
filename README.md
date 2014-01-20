@@ -29,6 +29,11 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 
 ##Changelog
 
+### 0.0.19
+ * (Bluefox) Add some images
+ * (Bluefox) Translate Alarms
+ * (Bluefox) Ignore more alarms if show states
+
 ### 0.0.18
  * (Bluefox) Remove datepicker.js
  
