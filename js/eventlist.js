@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.17",
+        version:     "0.0.19",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -291,7 +291,14 @@ var eventlist;
                     'HM-Sys-sRP-Pl':     'OM55_DimmerSwitch_thumb.png',
                     'HM-LC-Dim1T-Pl-2':  'OM55_DimmerSwitch_thumb.png',
                     'HM-LC-Sw1-Pl-2':    'OM55_DimmerSwitch_thumb.png',
+                    'HM-LC-Sw4-Ba-PCB':  '88_hm-lc-sw4-ba-pcb_thumb.png',
+                    'HM-Sen-RD-O':       '87_hm-sen-rd-o_thumb.png',
+                    'HM-RC-Sec4-2':      '86_hm-rc-sec4-2_thumb.png',
+                    'HM-PB-6-WM55':      '86_hm-pb-6-wm55_thumb.png',
+                    'HM-RC-Key4-2':      '85_hm-rc-key4-2_thumb.png',
+                    'HM-RC-4-2':         '84_hm-rc-4-2_thumb.png',
                     'HM-CC-RT-DN':       '83_hm-cc-rt-dn_thumb.png',
+                    'HM-Sen-Wa-Od':      '82_hm-sen-wa-od_thumb.png',
                     'HM-Sen-WA-OD':      '82_hm-sen-wa-od_thumb.png',
                     'HM-Dis-TD-T':       '81_hm-dis-td-t_thumb.png',
                     'HM-Sen-MDIR-O':     '80_hm-sen-mdir-o_thumb.png',
@@ -356,6 +363,7 @@ var eventlist;
                     'HM-RC-P1':          '21_hm-rc-p1_thumb.png',
                     'HM-RC-19':          '20_hm-rc-19_thumb.png',
                     'HM-RC-19-B':        '20_hm-rc-19_thumb.png',
+                    'HM-RC-19-SW':       '20_hm-rc-19_thumb.png',
                     'HM-RC-12':          '19_hm-rc-12_thumb.png',
                     'HM-RC-12-B':        '19_hm-rc-12_thumb.png',
                     'HM-RC-4':           '18_hm-rc-4_thumb.png',
@@ -383,11 +391,7 @@ var eventlist;
                     'HM-WDS100-C6-O':    'WeatherCombiSensor_thumb.png',
                     'HM-WDS10-TH-O':     'TH_CS_thumb.png',
                     'HM-WS550STH-O':     'TH_CS_thumb.png',
-					'HM-Sen-Wa-Od':      '82_hm-sen-wa-od_thumb.png',
-					'HM-PB-6-WM55':      '86_hm-pb-6-wm55_thumb.png',
-					'HM-RC-4-2':         '84_hm-rc-4-2_thumb.png',
-					'HM-WDS30-OT2-SM':   'IP65_G201_thumb.png',
-					'HM-RC-19-SW':       '20_hm-rc-19_thumb.png',
+                    'HM-WDS30-OT2-SM':   'IP65_G201_thumb.png',
                     'SONOS_ROOT':        'sonos.png',
                     'PING':              'pc.png',
                     'Alarm':             'alarm.png'
@@ -485,7 +489,7 @@ var eventlist;
         },
         filterOut: function (hm_id, type, value) {
             if (eventlist.settings.onlyStates && /*type != "STATE"*/
-                (type == 'BRIGHTNESS' ||
+                (   type == 'BRIGHTNESS' ||
                     type == 'WORKING' ||
                     type == 'HUMIDITY' ||
                     type == 'TEMPERATURE' ||
@@ -496,7 +500,16 @@ var eventlist;
                     type == 'Variable' ||
                     type == 'DIRECTION' ||
                     type == 'INFO' ||
-                    type == 'IP'))
+                    type == 'IP'||
+                    type == 'INFO' ||
+                    type == 'LOWBAT' ||
+                    type == 'UNREACH' ||
+                    type == 'CONFIG_PENDING' ||
+                    type == 'UPDATE_PENDING' ||
+                    type == 'DEVICE_IN_BOOTLOADER' ||
+                    type == 'DUTYCYCLE'
+                 )
+                )
                 return true;
 
             if (eventlist.settings.hmID != null && eventlist.settings.hmID.length > 0) {
@@ -881,7 +894,8 @@ var eventlist;
                     "opened"    : {"de": "auf"},
                     "closed"    : {"de": "zu"},
                     "online"    : {"de": "online"},
-                    "offline"   : {"de": "offline"}
+                    "offline"   : {"de": "offline"},
+                    "Alarms"    : {"de": "Alarmmeldungen"}
                 };
             }
             if (eventlist.words[text]) {
