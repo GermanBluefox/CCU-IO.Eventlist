@@ -15,15 +15,16 @@
     <script type="text/javascript" src="../lang/lang.js"></script>
     <script type="text/javascript">
         if (ccuIoLang == 'de') {
-            document.write ('<script type="text/javascript" src="../lib/js/jqGrid/i18n/grid.locale-de.js"></script>');
+            document.write ('<script type="text/javascript" src="../lib/js/jqGrid/i18n/grid.locale-de.js" />');
         }
         else
         if (ccuIoLang == 'ru') {
-            document.write ('<script type="text/javascript" src="../lib/js/jqGrid/i18n/grid.locale-ru.js"></script>');
-        else {
-            document.write ('<script type="text/javascript" src="../lib/js/jqGrid/i18n/grid.locale-en.js"></script>');
+            document.write ('<script type="text/javascript" src="../lib/js/jqGrid/i18n/grid.locale-ru.js" />');
         }
-    </script>    
+        else {
+            document.write ('<script type="text/javascript" src="../lib/js/jqGrid/i18n/grid.locale-en.js" />');
+        }
+    </script>
     <script type="text/javascript">
         jQuery(document).ready(function () { 
             eventlist.init('myTable');
