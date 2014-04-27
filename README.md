@@ -29,6 +29,9 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 
 ##Changelog
 
+### 0.0.20
+ * (Bluefox) Make offline mode possible
+ 
 ### 0.0.19
  * (Bluefox) Add some images
  * (Bluefox) Translate Alarms
