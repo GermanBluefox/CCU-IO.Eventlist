@@ -38,7 +38,7 @@ var eventlist;
         settings:   {
             loading:     true,   // Show loading status
             advanced:    false,  // Show events as text
-            lang:        'de',
+            lang:        (typeof ccuIoLang != 'undefined') ? ccuIoLang : 'de',
             hmID:        null,
             onlyStates:  true,   // Filter out humidity, temperature and so on
             showTypes:   0,      // 0 - all, 1 - devices, 2 - variables
@@ -567,19 +567,46 @@ var eventlist;
         },
         loadData: function (callback) {
             $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Objekte");
-            eventlist.socket.emit('getObjects', function(obj) {
-                eventlist.regaObjects = obj;
-                eventlist.ajaxDone();
-                $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Index");
-                // Weiter gehts mit dem Laden des Index
-                eventlist.socket.emit('getIndex', function(obj) {
-                    eventlist.regaIndex = obj;
-
+            if (eventlist.socket) {
+                eventlist.socket.emit('getObjects', function(obj) {
+                    eventlist.regaObjects = obj;
                     eventlist.ajaxDone();
+                    $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Index");
+                    // Weiter gehts mit dem Laden des Index
+                    eventlist.socket.emit('getIndex', function(obj) {
+                        eventlist.regaIndex = obj;
 
-                    if (callback) callback ();
+                        eventlist.ajaxDone();
+
+                        if (callback)  {
+                            callback ();
+                        }
+                    });
                 });
-            });
+            } else {
+                // local
+                // Load from ../datastore/local-data.json the demo views
+                $.ajax({
+                    url: '../datastore/local-data.json',
+                    type: 'get',
+                    async: false,
+                    dataType: 'text',
+                    cache: false,
+                    success: function (data) {
+                        eventlist.ajaxDone();
+
+                        var _localData = $.parseJSON(data);
+                        eventlist.regaIndex   = _localData.metaIndex;
+                        eventlist.regaObjects = _localData.metaObjects;
+                        if (callback)  {
+                            callback ();
+                        }
+                    },
+                    error: function (state) {
+                        console.log(state.statusText);
+                    }
+                });
+            }
         },
         getUrlVars: function () {
             var vars = {}, hash;
@@ -755,21 +782,26 @@ var eventlist;
             $("#loader_output2").prepend("<span class='ajax-loader'></span> frage vorhandene Logs ab");
 
             // Get the list of old log files
-            eventlist.socket.emit('readdir', "log", function (obj) {
-                eventlist.ajaxDone();
-                var l = eventlist.todayFile.length+1; // Store the file name length for optimization
+            if (eventlist.socket) {
+                eventlist.socket.emit('readdir', "log", function (obj) {
+                    eventlist.ajaxDone();
+                    var l = eventlist.todayFile.length+1; // Store the file name length for optimization
 
-                eventlist.logData[0] = {date: eventlist.translate("Today"), data: [], loaded: false, file: eventlist.todayFile};
-                for (var i = obj.length - 1; i >= 0 ; i--) {
-                    if (obj[i].match(/devices\-variables\.log\./)) {
-                        var date = obj[i].substring (l);
-                        var dates = date.split('-');
-                        date = dates[2] + "." + dates[1] + "." + dates[0];
-                        eventlist.logData[eventlist.logData.length] = {date: date, data: [], loaded: false, file: obj[i]};
+                    eventlist.logData[0] = {date: eventlist.translate("Today"), data: [], loaded: false, file: eventlist.todayFile};
+                    for (var i = obj.length - 1; i >= 0 ; i--) {
+                        if (obj[i].match(/devices\-variables\.log\./)) {
+                            var date = obj[i].substring (l);
+                            var dates = date.split('-');
+                            date = dates[2] + "." + dates[1] + "." + dates[0];
+                            eventlist.logData[eventlist.logData.length] = {date: date, data: [], loaded: false, file: obj[i]};
+                        }
                     }
-                }
+                    eventlist.loadLog (eventlist.active);
+                });
+            } else {
+                eventlist.logData[0] = {date: eventlist.translate("Today"), data: [], loaded: false, file: eventlist.todayFile};
                 eventlist.loadLog (eventlist.active);
-            });
+            }
         },
         getActionAndState: function (hmid, name, deviceType, pointType, value) {
             var action = {text: name + " / "+ pointType + " = " + value, _class: '', value: value};
@@ -873,29 +905,29 @@ var eventlist;
         translate: function (text) {
             if (eventlist.words == null) {
                 eventlist.words = {
-                    "Online"    : {"de": "Online"},
-                    "Offline"   : {"de": "Offline"},
-                    "no battery problem"    : {"de": "kein Batterieproblem"},
-                    "battery problem"   : {"de": "Batterieproblem"},
-                    "Motion"    : {"de": "Bewegung"},
-                    "No motion" : {"de": "keine Bewegung"},
-                    "Today"     : {"de": "Heute"},
-                    "Click to filter...": {"de": "Filtere nach dem Namen"},
-                    "Time"      : {"de": "Zeit"},
-                    "Type"      : {"de": "Typ"},
-                    "Description":{ "de": "Beschreibung"},
-                    "Value"     : {"de": "Wert"},
-                    "Room"      : {"de": "Zimmer"},
-                    "Function"  : {"de": "Gewerk"},
-                    "All"       : {"de": "Alle"},
-                    "Only devices": {"de": "Nur Ger&auml;te"},
-                    "Only variables": {"de": "Nur Variablen"},
-                    "No entries": {"de": "Keine Ereignisse"},
-                    "opened"    : {"de": "auf"},
-                    "closed"    : {"de": "zu"},
-                    "online"    : {"de": "online"},
-                    "offline"   : {"de": "offline"},
-                    "Alarms"    : {"de": "Alarmmeldungen"}
+                    "Online"    : {"en": "Online",  "de": "Online",           "ru": "Доступно"},
+                    "Offline"   : {"en": "Offline", "de": "Offline",          "ru": "Недоступно"},
+                    "no battery problem" : {"en": "no battery problem", "de": "kein Batterieproblem",  "ru": "нет проблем с батарейкой"},
+                    "battery problem" : {"en": "battery problem", "de": "Batterieproblem",  "ru": "Проблема с батарейкой"},
+                    "Motion"    : {"en": "Motion",  "de": "Bewegung",         "ru": "Движение обнаружено"},
+                    "No motion" : {"en": "No motion", "de": "keine Bewegung", "ru": "Нет движения"},
+                    "Today"     : {"en": "Today",   "de": "Heute",            "ru": "Сегодня"},
+                    "Click to filter...": {"en": "Click to filter...", "de": "Filtere nach dem Namen",  "ru": "Нажми для фильтрации"},
+                    "Time"      : {"en": "Time",    "de": "Zeit",             "ru": "Время"},
+                    "Type"      : {"en": "Type",    "de": "Typ",              "ru": "Тип"},
+                    "Description":{"en": "Description", "de": "Beschreibung", "ru": "Описание"},
+                    "Value"     : {"en": "Value",   "de": "Wert",             "ru": "Значение"},
+                    "Room"      : {"en": "Room",    "de": "Zimmer",           "ru": "Комната"},
+                    "Function"  : {"en": "Function","de": "Gewerk",           "ru": "Функция"},
+                    "All"       : {"en": "All",     "de": "Alle",             "ru": "Всё"},
+                    "Only devices": {"en": "Only devices", "de": "Nur Ger&auml;te",  "ru": "Только устройства"},
+                    "Only variables": {"en": "Only variables", "de": "Nur Variablen",  "ru": "Только переменные"},
+                    "No entries": {"en": "No entries", "en": "Online", "de": "Keine Ereignisse",  "ru": "Нет событий"},
+                    "opened"    : {"en": "opened",  "de": "auf",              "ru": "открыто"},
+                    "closed"    : {"en": "closed",  "de": "zu",               "ru": "закрыто"},
+                    "online"    : {"en": "online",  "de": "online",           "ru": "доступно"},
+                    "offline"   : {"en": "offline", "de": "offline",          "ru": "недоступно"},
+                    "Alarms"    : {"en": "Alarms",  "de": "Alarmmeldungen",   "ru": "Сообщения о тревонге"}
                 };
             }
             if (eventlist.words[text]) {
@@ -985,8 +1017,8 @@ var eventlist;
 
             $('#loader').show();
 
-            // Verbindung zu CCU.IO herstellen.
-            if (eventlist.socket == null) {
+            // Connect to Server.
+            if (typeof io !== 'undefined' && eventlist.socket == null) {
                 eventlist.socket = io.connect( $(location).attr('protocol') + '//' +  $(location).attr('host')+"?key="+socketSession);
 
                 eventlist.socket.emit('getSettings', function (ccuIoSettings) {
