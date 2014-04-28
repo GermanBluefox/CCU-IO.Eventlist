@@ -591,7 +591,7 @@ var eventlist;
                     type: 'get',
                     async: false,
                     dataType: 'text',
-                    cache: false,
+                    cache: true,
                     success: function (data) {
                         eventlist.ajaxDone();
 
