@@ -49,7 +49,7 @@ var eventlist;
 			vtrue:       null,   // Replace true with this value
 			vfalse:      null    // Replace false with this value
         },
-        version:     "0.0.19",
+        version:     "0.0.21",
         requiredCcuIoVersion: "0.9.62",
         socket:      null,
         regaObjects: null,
@@ -566,12 +566,12 @@ var eventlist;
             eventlist.newEvents = -1;
         },
         loadData: function (callback) {
-            $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Objekte");
+            $("#loader_output2").prepend("<span class='ajax-loader'></span> " + eventlist.translate("load objects"));
             if (eventlist.socket) {
                 eventlist.socket.emit('getObjects', function(obj) {
                     eventlist.regaObjects = obj;
                     eventlist.ajaxDone();
-                    $("#loader_output2").prepend("<span class='ajax-loader'></span> lade ReGaHSS-Index");
+                    $("#loader_output2").prepend("<span class='ajax-loader'></span> " + eventlist.translate("load indexes"));
                     // Weiter gehts mit dem Laden des Index
                     eventlist.socket.emit('getIndex', function(obj) {
                         eventlist.regaIndex = obj;
@@ -739,7 +739,7 @@ var eventlist;
                 eventlist.show();
             }
 
-            $("#loader_output2").prepend("<span class='ajax-loader'></span> lade "+eventlist.logData[indexToLoad].file+" ");
+            $("#loader_output2").prepend("<span class='ajax-loader'></span> " + eventlist.translate("load") + " " + eventlist.logData[indexToLoad].file+" ");
 
             var log = eventlist.logData[indexToLoad].file;
 
@@ -752,7 +752,7 @@ var eventlist;
                 url: '/log/'+log,
                 success: function (data) {
                     eventlist.ajaxDone();
-                    $("#loader_output2").prepend("<span class='ajax-loader'></span> verarbeite "+eventlist.logData[indexToLoad].file+" ");
+                    $("#loader_output2").prepend("<span class='ajax-loader'></span> " + eventlist.translate("process") + " " + eventlist.logData[indexToLoad].file+" ");
                     var dataArr = data.split("\n");
                     var l   = dataArr.length;
 
@@ -779,7 +779,7 @@ var eventlist;
                 eventlist.show ();
                 return;
             }
-            $("#loader_output2").prepend("<span class='ajax-loader'></span> frage vorhandene Logs ab");
+            $("#loader_output2").prepend("<span class='ajax-loader'></span> " + eventlist.translate("query present log files"));
 
             // Get the list of old log files
             if (eventlist.socket) {
@@ -927,7 +927,12 @@ var eventlist;
                     "closed"    : {"en": "closed",  "de": "zu",               "ru": "закрыто"},
                     "online"    : {"en": "online",  "de": "online",           "ru": "доступно"},
                     "offline"   : {"en": "offline", "de": "offline",          "ru": "недоступно"},
-                    "Alarms"    : {"en": "Alarms",  "de": "Alarmmeldungen",   "ru": "Сообщения о тревонге"}
+                    "load objects"    : {"en": "load objects",  "de": "lade Objekte",  "ru": "загружаются объекты"},
+                    "load indexes"    : {"en": "load indexes",  "de": "lade Index",    "ru": "загружаются индексы"},
+                    "load"            : {"en": "load",          "de": "lade",          "ru": "загружаются"},
+                    "process"         : {"en": "process",       "de": "verarbeite",    "ru": "обрабатывается"},
+                    "query present log files"    : {"en": "query present log files",  "de": "frage vorhandene Logs ab",   "ru": "запрос списка файлов"},
+                    "Alarms"          : {"en": "Alarms",        "de": "Alarmmeldungen","ru": "Сообщения о тревонге"}
                 };
             }
             if (eventlist.words[text]) {

@@ -29,6 +29,9 @@ Einfach in das Verzeichnis www von ccu.io kopieren.
 
 ##Changelog
 
+### 0.0.21
+ * (Bluefox) Translate load window to english and russian
+
 ### 0.0.20
  * (Bluefox) Make offline mode possible
  
